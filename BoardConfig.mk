@@ -1,4 +1,3 @@
-#
 # Copyright (C) 2011 The Android Open-Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +16,7 @@
 -include vendor/huawei/u8951/BoardConfigVendor.mk
 
 # OTA
-TARGET_OTA_ASSERT_DEVICE := u8833,u8951,hwY300-0100,hwY300-0151,hwG510-0100,hwG510-0151,hwG510-0200,msm7627a,msm7x27a
+TARGET_OTA_ASSERT_DEVICE := u8951,G510
 
 # Platform
 TARGET_NO_BOOTLOADER := true
@@ -26,24 +25,25 @@ TARGET_NO_RADIOIMAGE := true
 TARGET_BOARD_PLATFORM := msm7x27a
 TARGET_BOARD_PLATFORM_GPU := qcom-adreno200
 
-# Note: use cortex-a9 to take advantage of NEON optimizations
-TARGET_ARCH_VARIANT_CPU := cortex-a9
-TARGET_ARCH_VARIANT_FPU := neon
-
 TARGET_CPU_ABI := armeabi-v7a
 TARGET_CPU_ABI2 := armeabi
 TARGET_ARCH_VARIANT := armv7-a-neon
 TARGET_CPU_SMP := true
+TARGET_USES_ION := true
 
-TARGET_GLOBAL_CFLAGS += -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp
-TARGET_GLOBAL_CPPFLAGS += -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp
+# Note: use cortex-a9 to take advantage of NEON optimizations
+TARGET_ARCH_VARIANT_CPU := cortex-a9
+TARGET_ARCH_VARIANT_FPU := neon
+
+TARGET_GLOBAL_CFLAGS += -O3 -mtune=cortex-a9 -ftree-vectorize -mfpu=neon -mfloat-abi=softfp
+TARGET_GLOBAL_CPPFLAGS += -O3 -mtune=cortex-a9 -ftree-vectorize -mfpu=neon -mfloat-abi=softfp
 
 # Optimizations
 TARGET_CORTEX_CACHE_LINE_32 := true
 TARGET_USE_SPARROW_BIONIC_OPTIMIZATION := true
+TARGET_USES_16BPPSURFACE_FOR_OPAQUE := true
 ARCH_ARM_HAVE_TLS_REGISTER := true
 ARCH_ARM_HIGH_OPTIMIZATION := true
-ARCH_ARM_HAVE_32_BYTE_CACHE_LINES := true
 
 # Kernel 
 TARGET_KERNEL_SOURCE := kernel/huawei/u8951
@@ -59,21 +59,23 @@ TARGET_SPECIFIC_HEADER_PATH := device/huawei/u8951/include
 BOARD_EGL_CFG := device/huawei/u8951/prebuilt/system/lib/egl/egl.cfg
 USE_OPENGL_RENDERER := true
 BOARD_ADRENO_DECIDE_TEXTURE_TARGET := true
-TARGET_USES_ION := true
 BOARD_AVOID_DRAW_TEXTURE_EXTENSION := true
 BOARD_USE_SKIA_LCDTEXT := true
-TARGET_LIBAGL_USE_GRALLOC_COPYBITS := true
-
-# Voip
-COMMON_GLOBAL_CFLAGS += -DQCOM_VOIP_ENABLED
 
 # Video
+BUILD_WITH_FULL_STAGEFRIGHT := true
 COMMON_GLOBAL_CFLAGS += -DQCOM_BSP
+
+# FM Radio
+# BOARD_HAVE_FM_RADIO := true
+# BOARD_HAVE_QCOM_FM := true
+# BOARD_FM_DEVICE := bcm4330
+# BOARD_GLOBAL_CFLAGS += -DHAVE_FM_RADIO
 
 # Qualcomm hardware
 BOARD_USES_QCOM_HARDWARE := true
 BOARD_USES_QCOM_LIBS := true
-BOARD_USES_QCNE := true
+BOARD_USE_QCOM_LLVM_CLANG_RS := true
 COMMON_GLOBAL_CFLAGS += -DQCOM_HARDWARE
 
 # Wi-Fi
@@ -88,10 +90,6 @@ WIFI_DRIVER_FW_PATH_STA          := "sta"
 WIFI_DRIVER_FW_PATH_AP           := "ap"
 WIFI_DRIVER_FW_PATH_P2P          := "p2p"
 BOARD_HAVE_HUAWEI_WIFI := true
-
-# Java VM
-WITH_JIT := true
-ENABLE_JSC_JIT := true
 
 # Audio
 TARGET_PROVIDES_LIBAUDIO := true

@@ -23,8 +23,6 @@
 
 PRODUCT_LOCALES := ru_RU en_US
 
-$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
-
 # The GPS configuration appropriate for this device.
 $(call inherit-product, device/common/gps/gps_eu_supl.mk)
 
@@ -71,7 +69,6 @@ PRODUCT_PACKAGES += \
 
 # Live Wallpapers
 PRODUCT_PACKAGES += \
-    LiveWallpapersPicker \
     librs_jni
 
 # Other Packages
