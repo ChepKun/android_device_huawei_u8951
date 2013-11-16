@@ -1,0 +1,44 @@
+From: ChepKun <ProgrammerKun@gmail.com>
+Subject: [PATCH] audioservice: Change maximum sound volume 7->8, 15->20
+
+project frameworks/base/
+diff --git a/media/java/android/media/AudioService.java b/media/java/android/media/AudioService.java
+index e9bd455..3433faa 100644
+--- a/media/java/android/media/AudioService.java
++++ b/media/java/android/media/AudioService.java
+@@ -111,7 +111,7 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
+     protected static final boolean DEBUG_VOL = false;
+ 
+     /** How long to delay before persisting a change in volume/ringer mode. */
+-    private static final int PERSIST_DELAY = 500;
++    private static final int PERSIST_DELAY = 300;
+ 
+     private Context mContext;
+     private ContentResolver mContentResolver;
+@@ -228,16 +228,16 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
+ 
+    /** @hide Maximum volume index values for audio streams */
+     private final int[] MAX_STREAM_VOLUME = new int[] {
+-        5,  // STREAM_VOICE_CALL
+-        7,  // STREAM_SYSTEM
+-        7,  // STREAM_RING
+-        15, // STREAM_MUSIC
+-        7,  // STREAM_ALARM
+-        7,  // STREAM_NOTIFICATION
+-        15, // STREAM_BLUETOOTH_SCO
+-        7,  // STREAM_SYSTEM_ENFORCED
+-        15, // STREAM_DTMF
+-        15  // STREAM_TTS
++        6,  // STREAM_VOICE_CALL
++        8,  // STREAM_SYSTEM
++        8,  // STREAM_RING
++        20, // STREAM_MUSIC
++        8,  // STREAM_ALARM
++        8,  // STREAM_NOTIFICATION
++        20, // STREAM_BLUETOOTH_SCO
++        8,  // STREAM_SYSTEM_ENFORCED
++        20, // STREAM_DTMF
++        20  // STREAM_TTS
+     };
+     /* mStreamVolumeAlias[] indicates for each stream if it uses the volume settings
+      * of another stream: This avoids multiplying the volume settings for hidden
