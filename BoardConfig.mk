@@ -14,7 +14,8 @@
 # limitations under the License.
 #
 
-# Note: use cortex-a9 to take advantage of NEON optimizations
+# Skip docs from building
+BOARD_SKIP_ANDROID_DOC_BUILD := true
 
 # OTA
 TARGET_OTA_ASSERT_DEVICE := u8951,G510
@@ -35,7 +36,7 @@ TARGET_ARCH := arm
 TARGET_CPU_ABI := armeabi-v7a
 TARGET_CPU_ABI2 := armeabi
 TARGET_ARCH_VARIANT := armv7-a-neon
-TARGET_ARCH_VARIANT_CPU := cortex-a9 
+TARGET_ARCH_VARIANT_CPU := cortex-a5
 TARGET_ARCH_VARIANT_FPU := neon
 TARGET_CPU_SMP := true
 TARGET_USES_ION := true
@@ -44,15 +45,16 @@ ARCH_ARM_HAVE_NEON := true
 # Qualcomm hardware
 BOARD_USES_QCOM_HARDWARE := true
 BOARD_USES_QCOM_LIBS := true
+OARD_USE_QCOM_LLVM_CLANG_RS := true
 COMMON_GLOBAL_CFLAGS += -DQCOM_HARDWARE
 
 # Compiler flags
-TARGET_GLOBAL_CFLAGS += -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp
-TARGET_GLOBAL_CPPFLAGS += -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp
+TARGET_GLOBAL_CFLAGS += -mtune=cortex-a5 -mfpu=neon -mfloat-abi=softfp
+TARGET_GLOBAL_CPPFLAGS += -mtune=cortex-a5 -mfpu=neon -mfloat-abi=softfp
 
 # Kernel 
 TARGET_KERNEL_SOURCE := kernel/huawei/u8951
-TARGET_KERNEL_CONFIG := msm8x25_defconfig
+TARGET_KERNEL_CONFIG := cm_msm8x25_defconfig
 TARGET_BOOTLOADER_BOARD_NAME := U8951
 TARGET_USERIMAGES_USE_EXT4 := true
 BOARD_KERNEL_CMDLINE := androidboot.hardware=huawei
@@ -91,8 +93,6 @@ USE_OPENGL_RENDERER := true
 TARGET_QCOM_DISPLAY_VARIANT := legacy
 NUM_FRAMEBUFFER_SURFACE_BUFFERS := 3
 BOARD_USE_SKIA_LCDTEXT := true
-TARGET_LIBAGL_USE_GRALLOC_COPYBITS := true
-COMMON_GLOBAL_CFLAGS += -DREFRESH_RATE=65
 
 # Video
 TARGET_USES_QCOM_BSP := true
@@ -111,6 +111,8 @@ COMMON_GLOBAL_CFLAGS += -DMR0_CAMERA_BLOB
 ENABLE_WEBGL := true
 TARGET_FORCE_CPU_UPLOAD := true
 WITH_JIT := true
+ENABLE_JSC_JIT := true
+JS_ENGINE := v8
 
 # Audio
 TARGET_PROVIDES_LIBAUDIO  := true
@@ -127,9 +129,8 @@ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/huawei/u8951/bluetooth
 BOARD_BLUEDROID_VENDOR_CONF := device/huawei/u8951/bluetooth/vnd_u8951.txt
 
 # FM Radio
-#BOARD_HAVE_FM_RADIO := true
-#BOARD_FM_DEVICE := bcm4330
-#BOARD_GLOBAL_CFLAGS += -DHAVE_FM_RADIO
+#BOARD_HAVE_QCOM_FM := true
+#COMMON_GLOBAL_CFLAGS += -DQCOM_FM_ENABLED
 
 # GPS
 BOARD_USES_QCOM_LIBRPC := true

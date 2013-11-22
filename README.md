@@ -1,1 +1,3 @@
-android msm7x27a platform common configuration
+Device configuration for Huawei u8951 (G510)
+
+Thanks: Kratos, Josalaito, Dazzozo

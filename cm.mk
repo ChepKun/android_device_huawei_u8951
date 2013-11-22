@@ -26,10 +26,10 @@ TARGET_SCREEN_HEIGHT := 854
 TARGET_SCREEN_WIDTH := 480
 
 # Specify phone tech before including full_phone
-$(call inherit-product, yamato/config/gsm.mk)
+$(call inherit-product, vendor/yamato/config/gsm.mk)
 
 # Inherit some common stuff
-$(call inherit-product, yamato/config/common_full_phone.mk)
+$(call inherit-product, vendor/yamato/config/common_full_phone.mk)
 
 # Inherit device configuration
 $(call inherit-product, device/huawei/u8951/u8951.mk)

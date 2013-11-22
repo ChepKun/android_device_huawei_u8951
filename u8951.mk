@@ -51,9 +51,7 @@ PRODUCT_PACKAGES += \
     copybit.msm7x27a \
     gralloc.msm7x27a \
     hwcomposer.msm7x27a \
-    libgenlock \
     libtilerenderer
-# ??? genlock
 
 # Audio
 PRODUCT_PACKAGES += \
@@ -145,9 +143,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     debug.composition.type=dyn \
     ro.max.fling_velocity=4000 \
     ro.opengles.version=131072 \
-    ro.sf.lcd_density=240 \
-    video.accelerate.hw=1 \
-    hwui.render_dirty_regions=false
+    ro.sf.lcd_density=240
 
 PRODUCT_PROPERTY_OVERRIDES += \
     media.stagefright.enable-player=true \
