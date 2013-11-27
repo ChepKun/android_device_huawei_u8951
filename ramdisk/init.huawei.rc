@@ -188,11 +188,6 @@ on post-fs
     write /sys/module/pm2/modes/cpu1/standalone_power_collapse/suspend_enabled 1
     write /sys/module/pm2/modes/cpu0/power_collapse/suspend_enabled 1
     write /sys/module/pm2/modes/cpu0/power_collapse/idle_enabled 1
-    write /sys/devices/system/cpu/cpufreq/ondemand/sampling_rate 25000
-
-    # Tweak background writeout
-    write /proc/sys/vm/dirty_expire_centisecs 500
-    write /proc/sys/vm/dirty_background_ratio  10
 	
 # Msm specific files that need to be created on /data
 on post-fs-data
