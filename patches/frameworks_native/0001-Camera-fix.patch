@@ -1,0 +1,1605 @@
+From: ChepKun <ProgrammerKun@gmail.com>
+Subject: [PATCH] native: fix camera
+
+diff --git a/include/binder/IMemory.h b/include/binder/IMemory.h
+index 62ac9e3..3adb9bc 100644
+--- a/include/binder/IMemory.h
++++ b/include/binder/IMemory.h
+@@ -44,7 +44,9 @@ public:
+     virtual void*       getBase() const = 0;
+     virtual size_t      getSize() const = 0;
+     virtual uint32_t    getFlags() const = 0;
++#ifndef BINDER_COMPAT
+     virtual uint32_t    getOffset() const = 0;
++#endif
+ 
+     // these are there just for backward source compatibility
+     int32_t heapID() const { return getHeapID(); }
+diff --git a/include/binder/MemoryDealer.h b/include/binder/MemoryDealer.h
+index 170f20d..db6be2b 100644
+--- a/include/binder/MemoryDealer.h
++++ b/include/binder/MemoryDealer.h
+@@ -14,6 +14,10 @@
+  * limitations under the License.
+  */
+ 
++#ifdef ECLAIR_LIBCAMERA
++#include <binder/MemoryDealerEclair.h>
++#endif
++
+ #ifndef ANDROID_MEMORY_DEALER_H
+ #define ANDROID_MEMORY_DEALER_H
+ 
+diff --git a/include/binder/MemoryDealerEclair.h b/include/binder/MemoryDealerEclair.h
+new file mode 100644
+index 0000000..20313d9
+--- /dev/null
++++ b/include/binder/MemoryDealerEclair.h
+@@ -0,0 +1,257 @@
++/*
++ * Copyright (C) 2007 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#ifndef ANDROID_MEMORY_DEALER_H
++#define ANDROID_MEMORY_DEALER_H
++
++
++#include <stdint.h>
++#include <sys/types.h>
++
++#include <binder/IMemory.h>
++#include <utils/threads.h>
++#include <binder/MemoryHeapBase.h>
++
++namespace android {
++// ----------------------------------------------------------------------------
++class String8;
++
++/*
++ * interface for implementing a "heap". A heap basically provides
++ * the IMemoryHeap interface for cross-process sharing and the
++ * ability to map/unmap pages within the heap.
++ */
++class HeapInterface : public virtual BnMemoryHeap
++{
++public:
++    // all values must be page-aligned
++    virtual sp<IMemory> mapMemory(size_t offset, size_t size) = 0;
++
++    HeapInterface();
++protected:
++    virtual ~HeapInterface();
++};
++
++// ----------------------------------------------------------------------------
++
++/*
++ * interface for implementing an allocator. An allocator provides
++ * methods for allocating and freeing memory blocks and dumping
++ * its state.
++ */
++class AllocatorInterface : public RefBase
++{
++public:
++    enum {
++        PAGE_ALIGNED = 0x00000001
++    };
++
++    virtual size_t      allocate(size_t size, uint32_t flags = 0) = 0;
++    virtual status_t    deallocate(size_t offset) = 0;
++    virtual size_t      size() const = 0;
++    virtual void        dump(const char* what, uint32_t flags = 0) const = 0;
++    virtual void        dump(String8& res,
++            const char* what, uint32_t flags = 0) const = 0;
++
++    AllocatorInterface();
++protected:
++    virtual ~AllocatorInterface();
++};
++
++// ----------------------------------------------------------------------------
++
++/*
++ * concrete implementation of HeapInterface on top of mmap()
++ */
++class SharedHeap : public HeapInterface, public MemoryHeapBase
++{
++public:
++                        SharedHeap();
++                        SharedHeap(size_t size, uint32_t flags = 0, char const * name = NULL);
++    virtual             ~SharedHeap();
++    virtual sp<IMemory> mapMemory(size_t offset, size_t size);
++};
++
++// ----------------------------------------------------------------------------
++
++/*
++ * A simple templatized doubly linked-list implementation
++ */
++
++template <typename NODE>
++class LinkedList
++{
++    NODE*  mFirst;
++    NODE*  mLast;
++
++public:
++                LinkedList() : mFirst(0), mLast(0) { }
++    bool        isEmpty() const { return mFirst == 0; }
++    NODE const* head() const { return mFirst; }
++    NODE*       head() { return mFirst; }
++    NODE const* tail() const { return mLast; }
++    NODE*       tail() { return mLast; }
++
++    void insertAfter(NODE* node, NODE* newNode) {
++        newNode->prev = node;
++        newNode->next = node->next;
++        if (node->next == 0) mLast = newNode;
++        else                 node->next->prev = newNode;
++        node->next = newNode;
++    }
++
++    void insertBefore(NODE* node, NODE* newNode) {
++         newNode->prev = node->prev;
++         newNode->next = node;
++         if (node->prev == 0)   mFirst = newNode;
++         else                   node->prev->next = newNode;
++         node->prev = newNode;
++    }
++
++    void insertHead(NODE* newNode) {
++        if (mFirst == 0) {
++            mFirst = mLast = newNode;
++            newNode->prev = newNode->next = 0;
++        } else {
++            newNode->prev = 0;
++            newNode->next = mFirst;
++            mFirst->prev = newNode;
++            mFirst = newNode;
++        }
++    }
++
++    void insertTail(NODE* newNode) {
++        if (mLast == 0) {
++            insertHead(newNode);
++        } else {
++            newNode->prev = mLast;
++            newNode->next = 0;
++            mLast->next = newNode;
++            mLast = newNode;
++        }
++    }
++
++    NODE* remove(NODE* node) {
++        if (node->prev == 0)    mFirst = node->next;
++        else                    node->prev->next = node->next;
++        if (node->next == 0)    mLast = node->prev;
++        else                    node->next->prev = node->prev;
++        return node;
++    }
++};
++
++
++/*
++ * concrete implementation of AllocatorInterface using a simple
++ * best-fit allocation scheme
++ */
++class SimpleBestFitAllocator : public AllocatorInterface
++{
++public:
++
++                        SimpleBestFitAllocator(size_t size);
++    virtual             ~SimpleBestFitAllocator();
++
++    virtual size_t      allocate(size_t size, uint32_t flags = 0);
++    virtual status_t    deallocate(size_t offset);
++    virtual size_t      size() const;
++    virtual void        dump(const char* what, uint32_t flags = 0) const;
++    virtual void        dump(String8& res,
++            const char* what, uint32_t flags = 0) const;
++
++private:
++
++    struct chunk_t {
++        chunk_t(size_t start, size_t size)
++            : start(start), size(size), free(1), prev(0), next(0) {
++        }
++        size_t              start;
++        size_t              size : 28;
++        int                 free : 4;
++        mutable chunk_t*    prev;
++        mutable chunk_t*    next;
++    };
++
++    ssize_t  alloc(size_t size, uint32_t flags);
++    chunk_t* dealloc(size_t start);
++    void     dump_l(const char* what, uint32_t flags = 0) const;
++    void     dump_l(String8& res, const char* what, uint32_t flags = 0) const;
++
++    static const int    kMemoryAlign;
++    mutable Mutex       mLock;
++    LinkedList<chunk_t> mList;
++    size_t              mHeapSize;
++};
++
++// ----------------------------------------------------------------------------
++
++class MemoryDealer : public RefBase
++{
++public:
++
++    enum {
++        READ_ONLY = MemoryHeapBase::READ_ONLY,
++        PAGE_ALIGNED = AllocatorInterface::PAGE_ALIGNED
++    };
++
++    // creates a memory dealer with the SharedHeap and SimpleBestFitAllocator
++    MemoryDealer(size_t size, uint32_t flags = 0, const char* name = 0);
++
++    // provide a custom heap but use the SimpleBestFitAllocator
++    MemoryDealer(const sp<HeapInterface>& heap);
++
++    // provide both custom heap and allocotar
++    MemoryDealer(
++            const sp<HeapInterface>& heap,
++            const sp<AllocatorInterface>& allocator);
++
++    virtual sp<IMemory> allocate(size_t size, uint32_t flags = 0);
++    virtual void        deallocate(size_t offset);
++    virtual void        dump(const char* what, uint32_t flags = 0) const;
++
++
++    sp<IMemoryHeap> getMemoryHeap() const { return heap(); }
++    sp<AllocatorInterface> getAllocator() const { return allocator(); }
++
++protected:
++    virtual ~MemoryDealer();
++
++private:
++    const sp<HeapInterface>&        heap() const;
++    const sp<AllocatorInterface>&   allocator() const;
++
++    class Allocation : public BnMemory {
++    public:
++        Allocation(const sp<MemoryDealer>& dealer,
++                ssize_t offset, size_t size, const sp<IMemory>& memory);
++        virtual ~Allocation();
++        virtual sp<IMemoryHeap> getMemory(ssize_t* offset, size_t* size) const;
++    private:
++        sp<MemoryDealer>        mDealer;
++        ssize_t                 mOffset;
++        size_t                  mSize;
++        sp<IMemory>             mMemory;
++    };
++
++    sp<HeapInterface>           mHeap;
++    sp<AllocatorInterface>      mAllocator;
++};
++
++
++// ----------------------------------------------------------------------------
++}; // namespace android
++
++#endif // ANDROID_MEMORY_DEALER_H
+diff --git a/include/binder/MemoryHeapBase.h b/include/binder/MemoryHeapBase.h
+index ea9b66c..135f012 100644
+--- a/include/binder/MemoryHeapBase.h
++++ b/include/binder/MemoryHeapBase.h
+@@ -64,10 +64,10 @@ public:
+ 
+     virtual size_t      getSize() const;
+     virtual uint32_t    getFlags() const;
+-    virtual uint32_t    getOffset() const;
+-
++#ifndef BINDER_COMPAT
++    virtual uint32_t getOffset() const;
++#endif
+     const char*         getDevice() const;
+-
+     /* this closes this heap -- use carefully */
+     void dispose();
+ 
+@@ -94,7 +94,9 @@ private:
+     uint32_t    mFlags;
+     const char* mDevice;
+     bool        mNeedUnmap;
++#ifndef BINDER_COMPAT
+     uint32_t    mOffset;
++#endif
+ };
+ 
+ // ---------------------------------------------------------------------------
+diff --git a/include/binder/MemoryHeapPmem.h b/include/binder/MemoryHeapPmem.h
+index e1660c4..db3394a 100644
+--- a/include/binder/MemoryHeapPmem.h
++++ b/include/binder/MemoryHeapPmem.h
+@@ -20,10 +20,15 @@
+ #include <stdlib.h>
+ #include <stdint.h>
+ 
++#ifdef ECLAIR_LIBCAMERA
++#include <binder/MemoryDealer.h>
++#endif
+ #include <binder/MemoryHeapBase.h>
+ #include <binder/IMemory.h>
+ #include <utils/SortedVector.h>
++#ifndef ECLAIR_LIBCAMERA
+ #include <utils/threads.h>
++#endif
+ 
+ namespace android {
+ 
+@@ -31,7 +36,11 @@ class MemoryHeapBase;
+ 
+ // ---------------------------------------------------------------------------
+ 
++#ifndef ECLAIR_LIBCAMERA
+ class MemoryHeapPmem : public MemoryHeapBase
++#else
++class MemoryHeapPmem : public HeapInterface, public MemoryHeapBase
++#endif
+ {
+ public:
+     class MemoryPmem : public BnMemory {
+diff --git a/include/gui/SurfaceTexture.h b/include/gui/SurfaceTexture.h
+index 7c519ae..f507994 100644
+--- a/include/gui/SurfaceTexture.h
++++ b/include/gui/SurfaceTexture.h
+@@ -246,7 +246,11 @@ private:
+         virtual ~BufferRejecter() { }
+     };
+     friend class Layer;
++#ifdef DECIDE_TEXTURE_TARGET
++    status_t updateTexImage(BufferRejecter* rejecter, bool skipSync, bool isComposition=false);
++#else
+     status_t updateTexImage(BufferRejecter* rejecter, bool skipSync);
++#endif
+ 
+     // createImage creates a new EGLImage from a GraphicBuffer.
+     EGLImageKHR createImage(EGLDisplay dpy,
+@@ -338,7 +342,11 @@ private:
+     // glCopyTexSubImage to read from the texture.  This is a hack to work
+     // around a GL driver limitation on the number of FBO attachments, which the
+     // browser's tile cache exceeds.
++#ifdef DECIDE_TEXTURE_TARGET
++    GLenum mTexTarget;
++#else
+     const GLenum mTexTarget;
++#endif
+ 
+     // EGLSlot contains the information and object references that
+     // SurfaceTexture maintains about a BufferQueue buffer slot.
+diff --git a/include/ui/Overlay.h b/include/ui/Overlay.h
+new file mode 100644
+index 0000000..6647e92
+--- /dev/null
++++ b/include/ui/Overlay.h
+@@ -0,0 +1,103 @@
++/*
++ * Copyright (C) 2007 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#ifndef ANDROID_OVERLAY_H
++#define ANDROID_OVERLAY_H
++
++#include <stdint.h>
++#include <sys/types.h>
++
++#include <utils/Errors.h>
++#include <binder/IInterface.h>
++#include <utils/RefBase.h>
++#include <utils/threads.h>
++
++#include <ui/PixelFormat.h>
++
++typedef void (*overlay_set_fd_hook)(void *data,
++        int fd);
++typedef void (*overlay_set_crop_hook)(void *data,
++        uint32_t x, uint32_t y, uint32_t w, uint32_t h);
++typedef void (*overlay_queue_buffer_hook)(void *data,
++        void* buffer);
++
++namespace android {
++
++class IMemory;
++class IMemoryHeap;
++
++// ----------------------------------------------------------------------------
++
++class Overlay : public virtual RefBase
++{
++public:
++    Overlay(overlay_set_fd_hook set_fd,
++            overlay_set_crop_hook set_crop,
++            overlay_queue_buffer_hook queue_buffer,
++            void* data);
++
++    /* destroys this overlay */
++    void destroy();
++    
++    /* get the HAL handle for this overlay */
++    void* getHandleRef() const;
++
++    /* blocks until an overlay buffer is available and return that buffer. */
++    status_t dequeueBuffer(void** buffer);
++
++    /* release the overlay buffer and post it */
++    status_t queueBuffer(void* buffer);
++
++    /* change the width and height of the overlay */
++    status_t resizeInput(uint32_t width, uint32_t height);
++
++    status_t setCrop(uint32_t x, uint32_t y, uint32_t w, uint32_t h) ;
++
++    status_t getCrop(uint32_t* x, uint32_t* y, uint32_t* w, uint32_t* h) ;
++
++    /* set the buffer attributes */
++    status_t setParameter(int param, int value);
++    status_t setFd(int fd);
++
++    /* returns the address of a given buffer if supported, NULL otherwise. */
++    void* getBufferAddress(void* buffer);
++
++    /* get physical informations about the overlay */
++    uint32_t getWidth() const;
++    uint32_t getHeight() const;
++    int32_t getFormat() const;
++    int32_t getWidthStride() const;
++    int32_t getHeightStride() const;
++    int32_t getBufferCount() const;
++    status_t getStatus() const;
++    
++private:
++    virtual ~Overlay();
++
++    // C style hook
++    overlay_set_fd_hook set_fd_hook;
++    overlay_set_crop_hook set_crop_hook;
++    overlay_queue_buffer_hook queue_buffer_hook;
++    void* hook_data;
++
++    status_t mStatus;
++};
++
++// ----------------------------------------------------------------------------
++
++}; // namespace android
++
++#endif // ANDROID_OVERLAY_H
+diff --git a/include/utils/Singleton.h b/include/utils/Singleton.h
+index c60680e..a42ce21 100644
+--- a/include/utils/Singleton.h
++++ b/include/utils/Singleton.h
+@@ -65,9 +65,9 @@ private:
+  */
+ 
+ #define ANDROID_SINGLETON_STATIC_INSTANCE(TYPE)                 \
++    template class Singleton< TYPE >;                           \
+     template<> Mutex Singleton< TYPE >::sLock(Mutex::PRIVATE);  \
+-    template<> TYPE* Singleton< TYPE >::sInstance(0);           \
+-    template class Singleton< TYPE >;
++    template<> TYPE* Singleton< TYPE >::sInstance(0);
+ 
+ 
+ // ---------------------------------------------------------------------------
+diff --git a/libs/binder/Android.mk b/libs/binder/Android.mk
+index c72e930..51ee43c 100644
+--- a/libs/binder/Android.mk
++++ b/libs/binder/Android.mk
+@@ -21,7 +21,6 @@ sources := \
+     IPCThreadState.cpp \
+     IPermissionController.cpp \
+     IServiceManager.cpp \
+-    MemoryDealer.cpp \
+     MemoryBase.cpp \
+     MemoryHeapBase.cpp \
+     Parcel.cpp \
+@@ -34,6 +33,14 @@ sources += \
+     MemoryHeapPmem.cpp
+ endif
+ 
++ifeq ($(BOARD_USES_ECLAIR_LIBCAMERA),true)
++sources += \
++    MemoryDealerEclair.cpp
++else
++sources += \
++    MemoryDealer.cpp
++endif
++
+ LOCAL_PATH:= $(call my-dir)
+ 
+ include $(CLEAR_VARS)
+diff --git a/libs/binder/IMemory.cpp b/libs/binder/IMemory.cpp
+index 8fea1b2..7f67028 100644
+--- a/libs/binder/IMemory.cpp
++++ b/libs/binder/IMemory.cpp
+@@ -85,8 +85,9 @@ public:
+     virtual void* getBase() const;
+     virtual size_t getSize() const;
+     virtual uint32_t getFlags() const;
++#ifndef BINDER_COMPAT
+     virtual uint32_t getOffset() const;
+-
++#endif
+ private:
+     friend class IMemory;
+     friend class HeapCache;
+@@ -112,7 +113,9 @@ private:
+     mutable void*       mBase;
+     mutable size_t      mSize;
+     mutable uint32_t    mFlags;
++#ifndef BINDER_COMPAT
+     mutable uint32_t    mOffset;
++#endif
+     mutable bool        mRealHeap;
+     mutable Mutex       mLock;
+ };
+@@ -235,8 +238,13 @@ status_t BnMemory::onTransact(
+ 
+ BpMemoryHeap::BpMemoryHeap(const sp<IBinder>& impl)
+     : BpInterface<IMemoryHeap>(impl),
+-        mHeapId(-1), mBase(MAP_FAILED), mSize(0), mFlags(0), mOffset(0), mRealHeap(false)
++        mHeapId(-1), mBase(MAP_FAILED), mSize(0), mFlags(0),
++#ifndef BINDER_COMPAT
++	mOffset(0),
++#endif
++	mRealHeap(false)
+ {
++//HERE!
+ }
+ 
+ BpMemoryHeap::~BpMemoryHeap() {
+@@ -276,7 +284,9 @@ void BpMemoryHeap::assertMapped() const
+             if (mHeapId == -1) {
+                 mBase   = heap->mBase;
+                 mSize   = heap->mSize;
++#ifndef BINDER_COMPAT
+                 mOffset = heap->mOffset;
++#endif
+                 android_atomic_write( dup( heap->mHeapId ), &mHeapId );
+             }
+         } else {
+@@ -300,7 +310,11 @@ void BpMemoryHeap::assertReallyMapped() const
+         int parcel_fd = reply.readFileDescriptor();
+         ssize_t size = reply.readInt32();
+         uint32_t flags = reply.readInt32();
++#ifndef BINDER_COMPAT
+         uint32_t offset = reply.readInt32();
++#else
++        uint32_t offset = 0;
++#endif
+ 
+         ALOGE_IF(err, "binder=%p transaction failed fd=%d, size=%ld, err=%d (%s)",
+                 asBinder().get(), parcel_fd, size, err, strerror(-err));
+@@ -342,7 +356,9 @@ void BpMemoryHeap::assertReallyMapped() const
+             } else {
+                 mSize = size;
+                 mFlags = flags;
++#ifndef BINDER_COMPAT
+                 mOffset = offset;
++#endif
+                 android_atomic_write(fd, &mHeapId);
+             }
+         }
+@@ -374,11 +390,12 @@ uint32_t BpMemoryHeap::getFlags() const {
+     assertMapped();
+     return mFlags;
+ }
+-
++#ifndef BINDER_COMPAT
+ uint32_t BpMemoryHeap::getOffset() const {
+     assertMapped();
+     return mOffset;
+ }
++#endif
+ 
+ // ---------------------------------------------------------------------------
+ 
+@@ -399,7 +416,9 @@ status_t BnMemoryHeap::onTransact(
+             reply->writeFileDescriptor(getHeapID());
+             reply->writeInt32(getSize());
+             reply->writeInt32(getFlags());
++#ifndef BINDER_COMPAT
+             reply->writeInt32(getOffset());
++#endif
+             return NO_ERROR;
+         } break;
+         default:
+diff --git a/libs/binder/MemoryDealerEclair.cpp b/libs/binder/MemoryDealerEclair.cpp
+new file mode 100644
+index 0000000..fd60d8e
+--- /dev/null
++++ b/libs/binder/MemoryDealerEclair.cpp
+@@ -0,0 +1,421 @@
++/*
++ * Copyright (C) 2007 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#define LOG_TAG "MemoryDealer"
++#define USE_ECLAIR_MEMORYDEALER
++
++#include <binder/MemoryDealer.h>
++
++#include <utils/Log.h>
++#include <binder/IPCThreadState.h>
++#include <utils/SortedVector.h>
++#include <utils/String8.h>
++#include <binder/MemoryBase.h>
++
++#include <stdint.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <errno.h>
++#include <string.h>
++
++#include <sys/stat.h>
++#include <sys/types.h>
++#include <sys/mman.h>
++#include <sys/file.h>
++
++namespace android {
++// ----------------------------------------------------------------------------
++
++HeapInterface::HeapInterface() { }
++HeapInterface::~HeapInterface() { }
++
++// ----------------------------------------------------------------------------
++
++AllocatorInterface::AllocatorInterface() { }
++AllocatorInterface::~AllocatorInterface() { }
++
++// ----------------------------------------------------------------------------
++
++class SimpleMemory : public MemoryBase {
++public:
++    SimpleMemory(const sp<IMemoryHeap>& heap, ssize_t offset, size_t size);
++    virtual ~SimpleMemory();
++};
++
++
++// ----------------------------------------------------------------------------
++
++MemoryDealer::Allocation::Allocation(
++        const sp<MemoryDealer>& dealer, ssize_t offset, size_t size,
++        const sp<IMemory>& memory)
++    : mDealer(dealer), mOffset(offset), mSize(size), mMemory(memory)
++{
++}
++
++MemoryDealer::Allocation::~Allocation()
++{
++    if (mSize) {
++        /* NOTE: it's VERY important to not free allocations of size 0 because
++         * they're special as they don't have any record in the allocator
++         * and could alias some real allocation (their offset is zero). */
++        mDealer->deallocate(mOffset);
++    }
++}
++
++sp<IMemoryHeap> MemoryDealer::Allocation::getMemory(
++    ssize_t* offset, size_t* size) const
++{
++    return mMemory->getMemory(offset, size);
++}
++
++// ----------------------------------------------------------------------------
++
++MemoryDealer::MemoryDealer(size_t size, uint32_t flags, const char* name)
++    : mHeap(new SharedHeap(size, flags, name)),
++    mAllocator(new SimpleBestFitAllocator(size))
++{
++}
++
++MemoryDealer::MemoryDealer(const sp<HeapInterface>& heap)
++    : mHeap(heap),
++    mAllocator(new SimpleBestFitAllocator(heap->virtualSize()))
++{
++}
++
++MemoryDealer::MemoryDealer( const sp<HeapInterface>& heap,
++        const sp<AllocatorInterface>& allocator)
++    : mHeap(heap), mAllocator(allocator)
++{
++}
++
++MemoryDealer::~MemoryDealer()
++{
++}
++
++sp<IMemory> MemoryDealer::allocate(size_t size, uint32_t flags)
++{
++    sp<IMemory> memory;
++    const ssize_t offset = allocator()->allocate(size, flags);
++    if (offset >= 0) {
++        sp<IMemory> new_memory = heap()->mapMemory(offset, size);
++        if (new_memory != 0) {
++            memory = new Allocation(this, offset, size, new_memory);
++        } else {
++            ALOGE("couldn't map [%8lx, %u]", offset, size);
++            if (size) {
++                /* NOTE: it's VERY important to not free allocations of size 0
++                 * because they're special as they don't have any record in the
++                 * allocator and could alias some real allocation
++                 * (their offset is zero). */
++                allocator()->deallocate(offset);
++            }
++        }
++    }
++    return memory;
++}
++
++void MemoryDealer::deallocate(size_t offset)
++{
++    allocator()->deallocate(offset);
++}
++
++void MemoryDealer::dump(const char* what, uint32_t flags) const
++{
++    allocator()->dump(what, flags);
++}
++
++const sp<HeapInterface>& MemoryDealer::heap() const {
++    return mHeap;
++}
++
++const sp<AllocatorInterface>& MemoryDealer::allocator() const {
++    return mAllocator;
++}
++
++// ----------------------------------------------------------------------------
++
++// align all the memory blocks on a cache-line boundary
++const int SimpleBestFitAllocator::kMemoryAlign = 32;
++
++SimpleBestFitAllocator::SimpleBestFitAllocator(size_t size)
++{
++    size_t pagesize = getpagesize();
++    mHeapSize = ((size + pagesize-1) & ~(pagesize-1));
++
++    chunk_t* node = new chunk_t(0, mHeapSize / kMemoryAlign);
++    mList.insertHead(node);
++}
++
++SimpleBestFitAllocator::~SimpleBestFitAllocator()
++{
++    while(!mList.isEmpty()) {
++        delete mList.remove(mList.head());
++    }
++}
++
++size_t SimpleBestFitAllocator::size() const
++{
++    return mHeapSize;
++}
++
++size_t SimpleBestFitAllocator::allocate(size_t size, uint32_t flags)
++{
++    Mutex::Autolock _l(mLock);
++    ssize_t offset = alloc(size, flags);
++    return offset;
++}
++
++status_t SimpleBestFitAllocator::deallocate(size_t offset)
++{
++    Mutex::Autolock _l(mLock);
++    chunk_t const * const freed = dealloc(offset);
++    if (freed) {
++        return NO_ERROR;
++    }
++    return NAME_NOT_FOUND;
++}
++
++ssize_t SimpleBestFitAllocator::alloc(size_t size, uint32_t flags)
++{
++    if (size == 0) {
++        return 0;
++    }
++    size = (size + kMemoryAlign-1) / kMemoryAlign;
++    chunk_t* free_chunk = 0;
++    chunk_t* cur = mList.head();
++
++    size_t pagesize = getpagesize();
++    while (cur) {
++        int extra = 0;
++        if (flags & PAGE_ALIGNED)
++            extra = ( -cur->start & ((pagesize/kMemoryAlign)-1) ) ;
++
++        // best fit
++        if (cur->free && (cur->size >= (size+extra))) {
++            if ((!free_chunk) || (cur->size < free_chunk->size)) {
++                free_chunk = cur;
++            }
++            if (cur->size == size) {
++                break;
++            }
++        }
++        cur = cur->next;
++    }
++
++    if (free_chunk) {
++        const size_t free_size = free_chunk->size;
++        free_chunk->free = 0;
++        free_chunk->size = size;
++        if (free_size > size) {
++            int extra = 0;
++            if (flags & PAGE_ALIGNED)
++                extra = ( -free_chunk->start & ((pagesize/kMemoryAlign)-1) ) ;
++            if (extra) {
++                chunk_t* split = new chunk_t(free_chunk->start, extra);
++                free_chunk->start += extra;
++                mList.insertBefore(free_chunk, split);
++            }
++
++            ALOGE_IF((flags&PAGE_ALIGNED) &&
++                    ((free_chunk->start*kMemoryAlign)&(pagesize-1)),
++                    "PAGE_ALIGNED requested, but page is not aligned!!!");
++
++            const ssize_t tail_free = free_size - (size+extra);
++            if (tail_free > 0) {
++                chunk_t* split = new chunk_t(
++                        free_chunk->start + free_chunk->size, tail_free);
++                mList.insertAfter(free_chunk, split);
++            }
++        }
++        return (free_chunk->start)*kMemoryAlign;
++    }
++    return NO_MEMORY;
++}
++
++SimpleBestFitAllocator::chunk_t* SimpleBestFitAllocator::dealloc(size_t start)
++{
++    start = start / kMemoryAlign;
++    chunk_t* cur = mList.head();
++    while (cur) {
++        if (cur->start == start) {
++            LOG_FATAL_IF(cur->free,
++                "block at offset 0x%08lX of size 0x%08lX already freed",
++                cur->start*kMemoryAlign, cur->size*kMemoryAlign);
++
++            // merge freed blocks together
++            chunk_t* freed = cur;
++            cur->free = 1;
++            do {
++                chunk_t* const p = cur->prev;
++                chunk_t* const n = cur->next;
++                if (p && (p->free || !cur->size)) {
++                    freed = p;
++                    p->size += cur->size;
++                    mList.remove(cur);
++                    delete cur;
++                }
++                cur = n;
++            } while (cur && cur->free);
++
++            #ifndef NDEBUG
++                if (!freed->free) {
++                    dump_l("dealloc (!freed->free)");
++                }
++            #endif
++            LOG_FATAL_IF(!freed->free,
++                "freed block at offset 0x%08lX of size 0x%08lX is not free!",
++                freed->start * kMemoryAlign, freed->size * kMemoryAlign);
++
++            return freed;
++        }
++        cur = cur->next;
++    }
++    return 0;
++}
++
++void SimpleBestFitAllocator::dump(const char* what, uint32_t flags) const
++{
++    Mutex::Autolock _l(mLock);
++    dump_l(what, flags);
++}
++
++void SimpleBestFitAllocator::dump_l(const char* what, uint32_t flags) const
++{
++    String8 result;
++    dump_l(result, what, flags);
++    ALOGD("%s", result.string());
++}
++
++void SimpleBestFitAllocator::dump(String8& result,
++        const char* what, uint32_t flags) const
++{
++    Mutex::Autolock _l(mLock);
++    dump_l(result, what, flags);
++}
++
++void SimpleBestFitAllocator::dump_l(String8& result,
++        const char* what, uint32_t flags) const
++{
++    size_t size = 0;
++    int32_t i = 0;
++    chunk_t const* cur = mList.head();
++
++    const size_t SIZE = 256;
++    char buffer[SIZE];
++    snprintf(buffer, SIZE, "  %s (%p, size=%u)\n",
++            what, this, (unsigned int)mHeapSize);
++
++    result.append(buffer);
++
++    while (cur) {
++        const char* errs[] = {"", "| link bogus NP",
++                            "| link bogus PN", "| link bogus NP+PN" };
++        int np = ((cur->next) && cur->next->prev != cur) ? 1 : 0;
++        int pn = ((cur->prev) && cur->prev->next != cur) ? 2 : 0;
++
++        snprintf(buffer, SIZE, "  %3u: %08x | 0x%08X | 0x%08X | %s %s\n",
++            i, int(cur), int(cur->start*kMemoryAlign),
++            int(cur->size*kMemoryAlign),
++                    int(cur->free) ? "F" : "A",
++                    errs[np|pn]);
++
++        result.append(buffer);
++
++        if (!cur->free)
++            size += cur->size*kMemoryAlign;
++
++        i++;
++        cur = cur->next;
++    }
++    snprintf(buffer, SIZE, "  size allocated: %u (%u KB)\n", int(size), int(size/1024));
++    result.append(buffer);
++}
++
++// ----------------------------------------------------------------------------
++
++SharedHeap::SharedHeap()
++    : HeapInterface(), MemoryHeapBase()
++{
++}
++
++SharedHeap::SharedHeap(size_t size, uint32_t flags, char const * name)
++    : MemoryHeapBase(size, flags, name)
++{
++}
++
++SharedHeap::~SharedHeap()
++{
++}
++
++sp<IMemory> SharedHeap::mapMemory(size_t offset, size_t size)
++{
++    return new SimpleMemory(this, offset, size);
++}
++
++SimpleMemory::SimpleMemory(const sp<IMemoryHeap>& heap,
++        ssize_t offset, size_t size)
++    : MemoryBase(heap, offset, size)
++{
++#ifndef NDEBUG
++    void* const start_ptr = (void*)(intptr_t(heap->base()) + offset);
++    memset(start_ptr, 0xda, size);
++#endif
++}
++
++SimpleMemory::~SimpleMemory()
++{
++    size_t freedOffset = getOffset();
++    size_t freedSize   = getSize();
++
++    // keep the size to unmap in excess
++    size_t pagesize = getpagesize();
++    size_t start = freedOffset;
++    size_t end = start + freedSize;
++    start &= ~(pagesize-1);
++    end = (end + pagesize-1) & ~(pagesize-1);
++
++    // give back to the kernel the pages we don't need
++    size_t free_start = freedOffset;
++    size_t free_end = free_start + freedSize;
++    if (start < free_start)
++        start = free_start;
++    if (end > free_end)
++        end = free_end;
++    start = (start + pagesize-1) & ~(pagesize-1);
++    end &= ~(pagesize-1);
++
++    if (start < end) {
++        void* const start_ptr = (void*)(intptr_t(getHeap()->base()) + start);
++        size_t size = end-start;
++
++#ifndef NDEBUG
++        memset(start_ptr, 0xdf, size);
++#endif
++
++        // MADV_REMOVE is not defined on Dapper based Goobuntu
++#ifdef MADV_REMOVE
++        if (size) {
++            int err = madvise(start_ptr, size, MADV_REMOVE);
++            ALOGW_IF(err, "madvise(%p, %u, MADV_REMOVE) returned %s",
++                    start_ptr, size, err<0 ? strerror(errno) : "Ok");
++        }
++#endif
++    }
++}
++
++}; // namespace android
+diff --git a/libs/binder/MemoryHeapBase.cpp b/libs/binder/MemoryHeapBase.cpp
+index d1cbf1c..5af9f63 100644
+--- a/libs/binder/MemoryHeapBase.cpp
++++ b/libs/binder/MemoryHeapBase.cpp
+@@ -42,13 +42,19 @@ namespace android {
+ 
+ MemoryHeapBase::MemoryHeapBase()
+     : mFD(-1), mSize(0), mBase(MAP_FAILED),
+-      mDevice(NULL), mNeedUnmap(false), mOffset(0)
++      mDevice(NULL), mNeedUnmap(false)
++#ifndef BINDER_COMPAT
++    , mOffset(0)
++#endif
+ {
+ }
+ 
+ MemoryHeapBase::MemoryHeapBase(size_t size, uint32_t flags, char const * name)
+     : mFD(-1), mSize(0), mBase(MAP_FAILED), mFlags(flags),
+-      mDevice(0), mNeedUnmap(false), mOffset(0)
++      mDevice(0), mNeedUnmap(false)
++#ifndef BINDER_COMPAT
++    , mOffset(0)
++#endif
+ {
+     const size_t pagesize = getpagesize();
+     size = ((size + pagesize-1) & ~(pagesize-1));
+@@ -65,7 +71,10 @@ MemoryHeapBase::MemoryHeapBase(size_t size, uint32_t flags, char const * name)
+ 
+ MemoryHeapBase::MemoryHeapBase(const char* device, size_t size, uint32_t flags)
+     : mFD(-1), mSize(0), mBase(MAP_FAILED), mFlags(flags),
+-      mDevice(0), mNeedUnmap(false), mOffset(0)
++      mDevice(0), mNeedUnmap(false)
++#ifndef BINDER_COMPAT
++    , mOffset(0)
++#endif
+ {
+     int open_flags = O_RDWR;
+     if (flags & NO_CACHING)
+@@ -84,7 +93,10 @@ MemoryHeapBase::MemoryHeapBase(const char* device, size_t size, uint32_t flags)
+ 
+ MemoryHeapBase::MemoryHeapBase(int fd, size_t size, uint32_t flags, uint32_t offset)
+     : mFD(-1), mSize(0), mBase(MAP_FAILED), mFlags(flags),
+-      mDevice(0), mNeedUnmap(false), mOffset(0)
++      mDevice(0), mNeedUnmap(false)
++#ifndef BINDER_COMPAT
++    , mOffset(0)
++#endif
+ {
+     const size_t pagesize = getpagesize();
+     size = ((size + pagesize-1) & ~(pagesize-1));
+@@ -132,7 +144,7 @@ status_t MemoryHeapBase::mapfd(int fd, size_t size, uint32_t offset)
+             close(fd);
+             return -errno;
+         }
+-        //ALOGD("mmap(fd=%d, base=%p, size=%lu)", fd, base, size);
++        //LOGD("mmap(fd=%d, base=%p, size=%lu)", fd, base, size);
+         mBase = base;
+         mNeedUnmap = true;
+     } else  {
+@@ -141,7 +153,9 @@ status_t MemoryHeapBase::mapfd(int fd, size_t size, uint32_t offset)
+     }
+     mFD = fd;
+     mSize = size;
++#ifndef BINDER_COMPAT
+     mOffset = offset;
++#endif
+     return NO_ERROR;
+ }
+ 
+@@ -155,7 +169,7 @@ void MemoryHeapBase::dispose()
+     int fd = android_atomic_or(-1, &mFD);
+     if (fd >= 0) {
+         if (mNeedUnmap) {
+-            //ALOGD("munmap(fd=%d, base=%p, size=%lu)", fd, mBase, mSize);
++            //LOGD("munmap(fd=%d, base=%p, size=%lu)", fd, mBase, mSize);
+             munmap(mBase, mSize);
+         }
+         mBase = 0;
+@@ -184,9 +198,11 @@ const char* MemoryHeapBase::getDevice() const {
+     return mDevice;
+ }
+ 
++#ifndef BINDER_COMPAT
+ uint32_t MemoryHeapBase::getOffset() const {
+     return mOffset;
+ }
++#endif
+ 
+ // ---------------------------------------------------------------------------
+ }; // namespace android
+diff --git a/libs/binder/MemoryHeapPmem.cpp b/libs/binder/MemoryHeapPmem.cpp
+index 66bcf4d..e5a2024 100644
+--- a/libs/binder/MemoryHeapPmem.cpp
++++ b/libs/binder/MemoryHeapPmem.cpp
+@@ -127,7 +127,11 @@ void SubRegionMemory::revoke()
+ 
+ MemoryHeapPmem::MemoryHeapPmem(const sp<MemoryHeapBase>& pmemHeap,
+         uint32_t flags)
++#ifdef ECLAIR_LIBCAMERA
++    : HeapInterface(), MemoryHeapBase()
++#else
+     : MemoryHeapBase()
++#endif
+ {
+     char const * const device = pmemHeap->getDevice();
+ #ifdef HAVE_ANDROID_OS
+diff --git a/libs/gui/Android.mk b/libs/gui/Android.mk
+index 084ea0d..3a27042 100644
+--- a/libs/gui/Android.mk
++++ b/libs/gui/Android.mk
+@@ -54,6 +54,10 @@ ifneq ($(filter generic%,$(TARGET_DEVICE)),)
+     LOCAL_CFLAGS += -DUSE_FENCE_SYNC
+ endif
+ 
++ifeq ($(BOARD_ADRENO_DECIDE_TEXTURE_TARGET),true)
++    LOCAL_CFLAGS += -DDECIDE_TEXTURE_TARGET
++endif
++
+ ifeq ($(call is-vendor-board-platform,QCOM),true)
+ ifneq ($(TARGET_QCOM_DISPLAY_VARIANT),legacy)
+ 	LOCAL_CFLAGS += -DUSE_NATIVE_FENCE_SYNC
+diff --git a/libs/gui/SurfaceTexture.cpp b/libs/gui/SurfaceTexture.cpp
+index b4dfb5e..4be2085 100644
+--- a/libs/gui/SurfaceTexture.cpp
++++ b/libs/gui/SurfaceTexture.cpp
+@@ -195,7 +195,11 @@ status_t SurfaceTexture::releaseBufferLocked(int buf, EGLDisplay display,
+     return err;
+ }
+ 
++#ifdef DECIDE_TEXTURE_TARGET
++status_t SurfaceTexture::updateTexImage(BufferRejecter* rejecter, bool skipSync, bool isComposition) {
++#else
+ status_t SurfaceTexture::updateTexImage(BufferRejecter* rejecter, bool skipSync) {
++#endif
+     ATRACE_CALL();
+     ST_LOGV("updateTexImage");
+     Mutex::Autolock lock(mMutex);
+@@ -239,6 +243,29 @@ status_t SurfaceTexture::updateTexImage(BufferRejecter* rejecter, bool skipSync)
+     if (err == NO_ERROR) {
+         int buf = item.mBuf;
+ 
++#ifdef DECIDE_TEXTURE_TARGET
++        // GPU is not efficient in handling GL_TEXTURE_EXTERNAL_OES
++        // texture target. Depending on the image format, decide,
++        // the texture target to be used
++
++        if(isComposition){
++            switch (mSlots[buf].mGraphicBuffer->format) {
++                case HAL_PIXEL_FORMAT_RGBA_8888:
++                case HAL_PIXEL_FORMAT_RGBX_8888:
++                case HAL_PIXEL_FORMAT_RGB_888:
++                case HAL_PIXEL_FORMAT_RGB_565:
++                case HAL_PIXEL_FORMAT_BGRA_8888:
++                case HAL_PIXEL_FORMAT_RGBA_5551:
++                case HAL_PIXEL_FORMAT_RGBA_4444:
++                    mTexTarget = GL_TEXTURE_2D;
++                    break;
++                default:
++                    mTexTarget = GL_TEXTURE_EXTERNAL_OES;
++                    break;
++            }
++        }
++#endif
++
+         // we call the rejecter here, in case the caller has a reason to
+         // not accept this buffer. this is used by SurfaceFlinger to
+         // reject buffers which have the wrong size
+@@ -254,6 +281,7 @@ status_t SurfaceTexture::updateTexImage(BufferRejecter* rejecter, bool skipSync)
+         }
+ 
+         EGLImageKHR image = mEglSlots[buf].mEglImage;
++
+         glBindTexture(mTexTarget, mTexName);
+         glEGLImageTargetTexture2DOES(mTexTarget, (GLeglImageOES)image);
+ 
+diff --git a/libs/ui/Android.mk b/libs/ui/Android.mk
+index 5d5e082..23dc174 100644
+--- a/libs/ui/Android.mk
++++ b/libs/ui/Android.mk
+@@ -23,9 +23,15 @@ LOCAL_SRC_FILES:= \
+ 	GraphicBufferMapper.cpp \
+ 	PixelFormat.cpp \
+ 	Rect.cpp \
++        Overlay.cpp \
+ 	Region.cpp \
+ 	UiConfig.cpp
+ 
++ifeq ($(BOARD_USES_ECLAIR_LIBCAMERA),true)
++LOCAL_SRC_FILES+= \
++	../../../av/camera/CameraParameters.cpp
++endif
++
+ LOCAL_SHARED_LIBRARIES := \
+ 	libcutils \
+ 	libhardware \
+diff --git a/libs/ui/Overlay.cpp b/libs/ui/Overlay.cpp
+new file mode 100644
+index 0000000..f6653b4
+--- /dev/null
++++ b/libs/ui/Overlay.cpp
+@@ -0,0 +1,128 @@
++/*
++ * Copyright (C) 2007 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#define LOG_TAG "Overlay"
++
++#include <binder/IMemory.h>
++#include <binder/Parcel.h>
++#include <utils/Errors.h>
++#include <binder/MemoryHeapBase.h>
++
++#include <ui/Overlay.h>
++
++namespace android {
++
++Overlay::Overlay(overlay_set_fd_hook set_fd,
++        overlay_set_crop_hook set_crop,
++        overlay_queue_buffer_hook queue_buffer,
++        void *data)
++    : mStatus(NO_INIT)
++{
++    set_fd_hook = set_fd;
++    set_crop_hook = set_crop;
++    queue_buffer_hook = queue_buffer;
++    hook_data = data;
++    mStatus = NO_ERROR;
++}
++
++Overlay::~Overlay() {
++}
++
++status_t Overlay::dequeueBuffer(void** buffer)
++{
++    return mStatus;
++}
++
++status_t Overlay::queueBuffer(void* buffer)
++{
++    if (queue_buffer_hook)
++        queue_buffer_hook(hook_data, buffer);
++    return mStatus;
++}
++
++status_t Overlay::resizeInput(uint32_t width, uint32_t height)
++{
++    return mStatus;
++}
++
++status_t Overlay::setParameter(int param, int value)
++{
++    return mStatus;
++}
++
++status_t Overlay::setCrop(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
++{
++    if (set_crop_hook)
++        set_crop_hook(hook_data, x, y, w, h);
++    return mStatus;
++}
++
++status_t Overlay::getCrop(uint32_t* x, uint32_t* y, uint32_t* w, uint32_t* h)
++{
++    return mStatus;
++}
++
++status_t Overlay::setFd(int fd)
++{
++    if (set_fd_hook)
++        set_fd_hook(hook_data, fd);
++    return mStatus;
++}
++
++int32_t Overlay::getBufferCount() const
++{
++    return 0;
++}
++
++void* Overlay::getBufferAddress(void* buffer)
++{
++    return 0;
++}
++
++void Overlay::destroy() {  
++}
++
++status_t Overlay::getStatus() const {
++    return mStatus;
++}
++
++void* Overlay::getHandleRef() const {
++    return 0;
++}
++
++uint32_t Overlay::getWidth() const {
++    return 0;
++}
++
++uint32_t Overlay::getHeight() const {
++    return 0;
++}
++
++int32_t Overlay::getFormat() const {
++    return 0;
++}
++
++int32_t Overlay::getWidthStride() const {
++    return 0;
++}
++
++int32_t Overlay::getHeightStride() const {
++    return 0;
++}
++
++// ----------------------------------------------------------------------------
++
++}; // namespace android
+diff --git a/libs/utils/Android.mk b/libs/utils/Android.mk
+index c9f8fd4..2051354 100644
+--- a/libs/utils/Android.mk
++++ b/libs/utils/Android.mk
+@@ -72,6 +72,11 @@ ifeq ($(HOST_OS), linux)
+ LOCAL_SRC_FILES += Looper.cpp
+ endif
+ LOCAL_MODULE:= libutils
++
++ifeq ($(BOARD_USES_ECLAIR_LIBCAMERA),true)
++LOCAL_CFLAGS += -DLIBUTILS_NATIVE=1 $(TOOL_CFLAGS) -fpermissive
++endif
++
+ LOCAL_STATIC_LIBRARIES := libz
+ LOCAL_C_INCLUDES := \
+ 	external/zlib
+diff --git a/opengl/libs/EGL/egl_display.cpp b/opengl/libs/EGL/egl_display.cpp
+index 7ca9e40..59e96ec 100644
+--- a/opengl/libs/EGL/egl_display.cpp
++++ b/opengl/libs/EGL/egl_display.cpp
+@@ -176,9 +176,9 @@ EGLBoolean egl_display_t::initialize(EGLint *major, EGLint *minor) {
+          * cannot be called again. Therefore, we need to make sure to call
+          * eglGetDisplay() before calling eglInitialize();
+          */
+-        if (i == IMPL_HARDWARE) {
+-            disp[i].dpy = cnx->egl.eglGetDisplay(EGL_DEFAULT_DISPLAY);
+-        }
++
++            disp.dpy = cnx->egl.eglGetDisplay(EGL_DEFAULT_DISPLAY);
++
+ #endif
+ 
+         EGLDisplay idpy = disp.dpy;
+diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
+index b3fa5fb..1def0fc 100644
+--- a/services/surfaceflinger/Android.mk
++++ b/services/surfaceflinger/Android.mk
+@@ -43,6 +43,10 @@ ifneq ($(NUM_FRAMEBUFFER_SURFACE_BUFFERS),)
+   LOCAL_CFLAGS += -DNUM_FRAMEBUFFER_SURFACE_BUFFERS=$(NUM_FRAMEBUFFER_SURFACE_BUFFERS)
+ endif
+ 
++ifeq ($(BOARD_ADRENO_DECIDE_TEXTURE_TARGET),true)
++    LOCAL_CFLAGS += -DDECIDE_TEXTURE_TARGET
++endif
++
+ LOCAL_SHARED_LIBRARIES := \
+ 	libcutils \
+ 	libdl \
+diff --git a/services/surfaceflinger/DisplayHardware/HWComposer.cpp b/services/surfaceflinger/DisplayHardware/HWComposer.cpp
+index 9b4f2ab..889ca05 100644
+--- a/services/surfaceflinger/DisplayHardware/HWComposer.cpp
++++ b/services/surfaceflinger/DisplayHardware/HWComposer.cpp
+@@ -233,17 +233,16 @@ HWComposer::HWComposer(
+     loadFbHalModule();
+     loadHwcModule();
+ 
+-    if (mFbDev && mHwc && hwcHasApiVersion(mHwc, HWC_DEVICE_API_VERSION_1_1)) {
+-        // close FB HAL if we don't needed it.
+-        // FIXME: this is temporary until we're not forced to open FB HAL
+-        // before HWC.
+-        framebuffer_close(mFbDev);
+-        mFbDev = NULL;
+-    }
+-
+-    // If we have no HWC, or a pre-1.1 HWC, an FB dev is mandatory.
+-    if ((!mHwc || !hwcHasApiVersion(mHwc, HWC_DEVICE_API_VERSION_1_1))
+-            && !mFbDev) {
++    if (mHwc && hwcHasApiVersion(mHwc, HWC_DEVICE_API_VERSION_1_1)) {
++	if (mFbDev) {
++            // close FB HAL if we don't needed it.
++            // FIXME: this is temporary until we're not forced to open FB HAL
++            // before HWC.
++            framebuffer_close(mFbDev);
++            mFbDev = NULL;
++	}
++    } else if (!mFbDev) {
++	// If we have no HWC, or a pre-1.1 HWC, an FB dev is mandatory.
+         ALOGE("ERROR: failed to open framebuffer, aborting");
+         abort();
+     }
+diff --git a/services/surfaceflinger/Layer.cpp b/services/surfaceflinger/Layer.cpp
+index c1561b2..b14728d 100644
+--- a/services/surfaceflinger/Layer.cpp
++++ b/services/surfaceflinger/Layer.cpp
+@@ -367,6 +367,9 @@ void Layer::onDraw(const sp<const DisplayDevice>& hw, const Region& clip) const
+ 
+     bool blackOutLayer = isProtected() || (isSecure() && !hw->isSecure());
+ 
++#ifdef DECIDE_TEXTURE_TARGET
++    GLuint currentTextureTarget = mSurfaceTexture->getCurrentTextureTarget();
++#endif
+     if (!blackOutLayer) {
+         // TODO: we could be more subtle with isFixedSize()
+         const bool useFiltering = getFiltering() || needsFiltering(hw) || isFixedSize();
+@@ -377,29 +380,49 @@ void Layer::onDraw(const sp<const DisplayDevice>& hw, const Region& clip) const
+         mSurfaceTexture->getTransformMatrix(textureMatrix);
+ 
+         // Set things up for texturing.
++#ifdef DECIDE_TEXTURE_TARGET
++        glBindTexture(currentTextureTarget, mTextureName);
++#else
+         glBindTexture(GL_TEXTURE_EXTERNAL_OES, mTextureName);
++#endif
+         GLenum filter = GL_NEAREST;
+         if (useFiltering) {
+             filter = GL_LINEAR;
+         }
++#ifdef DECIDE_TEXTURE_TARGET
++        glTexParameterx(currentTextureTarget, GL_TEXTURE_MAG_FILTER, filter);
++        glTexParameterx(currentTextureTarget, GL_TEXTURE_MIN_FILTER, filter);
++#else
+         glTexParameterx(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, filter);
+         glTexParameterx(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, filter);
++#endif
+         glMatrixMode(GL_TEXTURE);
+         glLoadMatrixf(textureMatrix);
+         glMatrixMode(GL_MODELVIEW);
+         glDisable(GL_TEXTURE_2D);
++#ifdef DECIDE_TEXTURE_TARGET
++        glEnable(currentTextureTarget);
++#else
+         glEnable(GL_TEXTURE_EXTERNAL_OES);
++#endif
+     } else {
++#ifdef DECIDE_TEXTURE_TARGET
++        glBindTexture(currentTextureTarget, mFlinger->getProtectedTexName());
++#else
+         glBindTexture(GL_TEXTURE_2D, mFlinger->getProtectedTexName());
++#endif
+         glMatrixMode(GL_TEXTURE);
+         glLoadIdentity();
+         glMatrixMode(GL_MODELVIEW);
++#ifdef DECIDE_TEXTURE_TARGET
++        glEnable(currentTextureTarget);
++#else
+         glDisable(GL_TEXTURE_EXTERNAL_OES);
+         glEnable(GL_TEXTURE_2D);
++#endif
+     }
+ 
+     drawWithOpenGL(hw, clip);
+-
+     glDisable(GL_TEXTURE_EXTERNAL_OES);
+     glDisable(GL_TEXTURE_2D);
+ }
+@@ -661,8 +684,14 @@ Region Layer::latchBuffer(bool& recomputeVisibleRegions)
+ 
+ 
+         Reject r(mDrawingState, currentState(), recomputeVisibleRegions);
+-
++#ifdef DECIDE_TEXTURE_TARGET
++        // While calling updateTexImage() from SurfaceFlinger, let it know
++        // by passing an extra parameter
++        // This will be true always.
++        if (mSurfaceTexture->updateTexImage(&r, true, true) < NO_ERROR) {
++#else
+         if (mSurfaceTexture->updateTexImage(&r, true) < NO_ERROR) {
++#endif
+             // something happened!
+             recomputeVisibleRegions = true;
+             return outDirtyRegion;
+diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
+index f31bae4..a249a08 100644
+--- a/services/surfaceflinger/SurfaceFlinger.cpp
++++ b/services/surfaceflinger/SurfaceFlinger.cpp
+@@ -105,7 +105,8 @@ SurfaceFlinger::SurfaceFlinger()
+         mDebugInTransaction(0),
+         mLastTransactionTime(0),
+         mBootFinished(false),
+-        mUseDithering(0)
++        mUseDithering(0),
++        mPrefer16bpp(0)
+ {
+     ALOGI("SurfaceFlinger is starting");
+ 
+@@ -127,6 +128,9 @@ SurfaceFlinger::SurfaceFlinger()
+     property_get("persist.sys.use_dithering", value, "1");
+     mUseDithering = atoi(value);
+ 
++    property_get("persist.sys.prefer_16bpp", value, "1");
++    mPrefer16bpp = atoi(value);
++
+     ALOGI_IF(mDebugRegion, "showupdates enabled");
+     ALOGI_IF(mDebugDDMS, "DDMS debugging enabled");
+     ALOGI_IF(mUseDithering, "use dithering");
+@@ -1643,7 +1647,7 @@ void SurfaceFlinger::doComposeSurfaces(const sp<const DisplayDevice>& hw, const
+                     case HWC_FRAMEBUFFER_TARGET: {
+                         // this should not happen as the iterator shouldn't
+                         // let us get there.
+-                        ALOGW("HWC_FRAMEBUFFER_TARGET found in hwc list (index=%d)", i);
++                        // ALOGW("HWC_FRAMEBUFFER_TARGET found in hwc list (index=%d)", i);
+                         break;
+                     }
+                 }
+@@ -2000,7 +2004,10 @@ sp<Layer> SurfaceFlinger::createNormalLayer(
+ #ifdef NO_RGBX_8888
+         format = PIXEL_FORMAT_RGB_565;
+ #else
+-        format = PIXEL_FORMAT_RGBX_8888;
++        if (mPrefer16bpp)
++            format = PIXEL_FORMAT_RGB_565;
++        else
++            format = PIXEL_FORMAT_RGBX_8888;
+ #endif
+         break;
+     }
+diff --git a/services/surfaceflinger/SurfaceFlinger.h b/services/surfaceflinger/SurfaceFlinger.h
+index 050d10f..c01b437 100644
+--- a/services/surfaceflinger/SurfaceFlinger.h
++++ b/services/surfaceflinger/SurfaceFlinger.h
+@@ -454,6 +454,7 @@ private:
+     nsecs_t mLastTransactionTime;
+     bool mBootFinished;
+     int mUseDithering;
++    bool mPrefer16bpp;
+ 
+     // these are thread safe
+     mutable MessageQueue mEventQueue;

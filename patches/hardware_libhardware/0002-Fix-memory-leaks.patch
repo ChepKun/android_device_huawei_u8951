@@ -1,0 +1,29 @@
+From: ChepKun <ProgrammerKun@gmail.com>
+Subject: [PATCH] audio: fix memory leaks
+
+diff --git a/include/hardware/audio.h b/include/hardware/audio.h
+index 100b149..71ec51b 100644
+--- a/include/hardware/audio.h
++++ b/include/hardware/audio.h
+@@ -410,6 +410,9 @@ static inline size_t audio_stream_frame_size(const struct audio_stream *s)
+     int format = s->get_format(s);
+ 
+ #ifdef QCOM_HARDWARE
++    char *tmpparam;
++    int isParamEqual;
++
+     if (!s)
+         return 0;
+ 
+@@ -419,7 +422,10 @@ static inline size_t audio_stream_frame_size(const struct audio_stream *s)
+                       AUDIO_CHANNEL_IN_5POINT1);
+     }
+ 
+-    if(!strncmp(s->get_parameters(s, "voip_flag"),"voip_flag=1",sizeof("voip_flag=1"))) {
++    tmpparam = s->get_parameters(s, "voip_flag");
++    isParamEqual = !strncmp(tmpparam,"voip_flag=1", sizeof("voip_flag=1"));
++    free(tmpparam);	
++    if(isParamEqual) {
+         if(format != AUDIO_FORMAT_PCM_8_BIT)
+             return popcount(chan_mask) * sizeof(int16_t);
+         else
