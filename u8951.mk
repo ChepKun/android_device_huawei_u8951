@@ -69,6 +69,13 @@ PRODUCT_PACKAGES += \
 # Lights	
 PRODUCT_PACKAGES += \
     lights.msm7x27a	
+
+# FM Radio
+PRODUCT_PACKAGES += \
+   libqcomfm_jni \
+   qcom.fmradio \
+   FM2 \
+   FMRecord
 	
 # Other Packages
 PRODUCT_PACKAGES += \
@@ -122,6 +129,12 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.bt.bdaddr_path=/data/misc/bluedroid/bdaddr \
     ro.qualcomm.bluetooth.dun=true \
     ro.qualcomm.bluetooth.ftp=true
+
+# FM Radio
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.fm.analogpath.supported=false \
+    ro.fm.transmitter=false \
+    ro.fm.mulinst.recording.support=false
 
 PRODUCT_PROPERTY_OVERRIDES += \
     debug.camcorder.disablemeta=0
@@ -187,9 +200,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.kernel.android.checkjni=0 \
-    ro.media.enc.jpeg.quality=100
+    ro.media.enc.jpeg.quality=100 \
+    persist.sys.use_dithering=0
 
-# Properties
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.confg.hw_appfsversion=U8951_CM10.1_SYSIMG \
     ro.confg.hw_appsbootversion=U8951_CM10.1_APPSBOOT \

@@ -9,3 +9,6 @@ LOCAL_PATH := $(LOCAL_DIR_PATH)
 include $(LOCAL_PATH)/media-legacy/Android.mk
 LOCAL_PATH := $(LOCAL_DIR_PATH)
 
+include $(LOCAL_PATH)/fm/Android.mk
+LOCAL_PATH := $(LOCAL_DIR_PATH)
+

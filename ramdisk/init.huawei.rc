@@ -21,6 +21,9 @@ on early-init
     mkdir /dev/bus 0755 root root
     mkdir /dev/bus/usb 0755 root root
 
+on init
+    export BOOTCLASSPATH ${BOOTCLASSPATH}:/system/framework/qcom.fmradio.jar
+
 on emmc-fs
     # Mount mmc partitions
     mount_all /fstab.huawei
@@ -380,4 +383,11 @@ on property:persist.thermal.monitor=true
 service gpu_dcvsd /system/bin/gpu_dcvsd
     class late_start
     user root
+    oneshot
+
+service fm_dl /system/bin/sh /system/etc/init.qcom.fm.sh
+    class late_start
+    user root
+    group system qcom_oncrpc
+    disabled
     oneshot
