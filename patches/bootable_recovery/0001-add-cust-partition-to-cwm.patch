@@ -1,7 +1,7 @@
 From 508ffb0102b9b0a89b29ec892b878d8a466519b3 Mon Sep 17 00:00:00 2001
 From: Kra1o5 <kra1o5x@gmail.com>
 Date: Wed, 7 Aug 2013 23:01:08 +0200
-Subject: [PATCH] add-cust-partition-to-cwm
+Subject: [PATCH] recovery: add cust partition to CWM
 
 ---
  edifyscripting.c   |  8 ++++++++

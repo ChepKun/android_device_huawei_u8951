@@ -27,7 +27,7 @@ TARGET_NO_RADIOIMAGE := true
 TARGET_BOARD_PLATFORM := msm7x27a
 TARGET_BOARD_PLATFORM_GPU := qcom-adreno200
 
-TARGET_SPECIFIC_HEADER_PATH := device/huawei/u8951/include
+TARGET_SPECIFIC_HEADER_PATH := device/huawei/u8951/include/kernel
 
 BOARD_WANTS_EMMC_BOOT := true
 
@@ -47,6 +47,8 @@ BOARD_USES_QCOM_HARDWARE := true
 BOARD_USES_QCOM_LIBS := true
 OARD_USE_QCOM_LLVM_CLANG_RS := true
 COMMON_GLOBAL_CFLAGS += -DQCOM_HARDWARE
+#COMMON_GLOBAL_CFLAGS += -DQCOM_ICS_COMPAT
+#COMMON_GLOBAL_CFLAGS += -DNEW_ION_API
 
 # Compiler flags
 TARGET_GLOBAL_CFLAGS += -mtune=cortex-a5 -mfpu=neon -mfloat-abi=softfp
@@ -64,12 +66,12 @@ BOARD_PAGE_SIZE := 2048
 # Compile Wi-Fi driver
 KERNEL_EXTERNAL_MODULES:
 	mkdir -p $(TARGET_ROOT_OUT)/wifi
-	rm -rf $(TARGET_OUT_INTERMEDIATES)/ath6kl-huawei
-	cp -a device/huawei/u8951/ath6kl-huawei $(TARGET_OUT_INTERMEDIATES)/
-	$(MAKE) -C $(TARGET_OUT_INTERMEDIATES)/ath6kl-huawei/cfg80211 KERNEL_OUT=$(KERNEL_OUT) ARCH="arm" CROSS_COMPILE="arm-eabi-" modules
-	$(MAKE) -C $(TARGET_OUT_INTERMEDIATES)/ath6kl-huawei/ar6000 KERNEL_OUT=$(KERNEL_OUT) ARCH="arm" CROSS_COMPILE="arm-eabi-" modules
-	$(TARGET_OBJCOPY) --strip-unneeded $(TARGET_OUT_INTERMEDIATES)/ath6kl-huawei/cfg80211/cfg80211.ko $(TARGET_ROOT_OUT)/wifi/cfg80211.ko
-	$(TARGET_OBJCOPY) --strip-unneeded $(TARGET_OUT_INTERMEDIATES)/ath6kl-huawei/ar6000/ar6000.ko $(TARGET_ROOT_OUT)/wifi/ar6000.ko
+	rm -rf $(TARGET_OUT_INTERMEDIATES)/ath6kl
+	cp -a device/huawei/u8951/hardware/ath6kl $(TARGET_OUT_INTERMEDIATES)/
+	$(MAKE) -C $(TARGET_OUT_INTERMEDIATES)/ath6kl/cfg80211 KERNEL_OUT=$(KERNEL_OUT) ARCH="arm" CROSS_COMPILE="arm-eabi-" modules
+	$(MAKE) -C $(TARGET_OUT_INTERMEDIATES)/ath6kl/ar6000 KERNEL_OUT=$(KERNEL_OUT) ARCH="arm" CROSS_COMPILE="arm-eabi-" modules
+	$(TARGET_OBJCOPY) --strip-unneeded $(TARGET_OUT_INTERMEDIATES)/ath6kl/cfg80211/cfg80211.ko $(TARGET_ROOT_OUT)/wifi/cfg80211.ko
+	$(TARGET_OBJCOPY) --strip-unneeded $(TARGET_OUT_INTERMEDIATES)/ath6kl/ar6000/ar6000.ko $(TARGET_ROOT_OUT)/wifi/ar6000.ko
 
 TARGET_KERNEL_MODULES := KERNEL_EXTERNAL_MODULES
 
@@ -86,7 +88,7 @@ ARCH_ARM_HAVE_32_BYTE_CACHE_LINES := true
 TARGET_ARCH_LOWMEM := true
 
 # Graphics
-BOARD_EGL_CFG := device/huawei/u8951/egl/egl.cfg
+BOARD_EGL_CFG := device/huawei/u8951/configs/egl.cfg
 BOARD_ADRENO_DECIDE_TEXTURE_TARGET := true
 USE_OPENGL_RENDERER := true
 TARGET_QCOM_DISPLAY_VARIANT := legacy
@@ -105,7 +107,6 @@ USE_CAMERA_STUB := true
 BOARD_NEEDS_MEMORYHEAPPMEM := true
 BOARD_USES_QCOM_LEGACY_CAM_PARAMS := true
 COMMON_GLOBAL_CFLAGS += -DMR0_CAMERA_BLOB
-#BOARD_USES_ECLAIR_LIBCAMERA
 
 # Web Rendering
 ENABLE_WEBGL := true
@@ -115,20 +116,20 @@ JS_ENGINE := v8
 # Audio
 TARGET_PROVIDES_LIBAUDIO  := true
 
-# Lights
-TARGET_PROVIDES_LIBLIGHTS := true
-
 # RIL
-BOARD_RIL_CLASS := ../../../device/huawei/u8951/ril/
+BOARD_RIL_CLASS := ../../../device/huawei/u8951/include/android/ril/
 
 # Bluetooth
 BOARD_HAVE_BLUETOOTH := true
-BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/huawei/u8951/bluetooth
-BOARD_BLUEDROID_VENDOR_CONF := device/huawei/u8951/bluetooth/vnd_u8951.txt
+BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/huawei/u8951/configs/bdroid
+BOARD_BLUEDROID_VENDOR_CONF := device/huawei/u8951/configs/vnd_u8951.txt
 
 # FM Radio
 BOARD_HAVE_QCOM_FM := true
+BOARD_HAVE_FM_RADIO := true
+BOARD_FM_DEVICE := bcm4330
 COMMON_GLOBAL_CFLAGS += -DQCOM_FM_ENABLED
+BOARD_GLOBAL_CFLAGS += -DHAVE_FM_RADIO
 
 # GPS
 BOARD_USES_QCOM_LIBRPC := true

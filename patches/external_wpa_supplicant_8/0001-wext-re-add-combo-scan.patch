@@ -1,7 +1,7 @@
 From 3cd9836f421bd3391f7fda7a78c04df7e7e47078 Mon Sep 17 00:00:00 2001
 From: Konsta <konsta09@gmail.com>
 Date: Thu, 3 Jan 2013 18:30:33 +0200
-Subject: [PATCH 1/2] wext: re-add combo scan
+Subject: [PATCH] wext: re-add combo scan
 
 Change-Id: Iab004f7fde9af72c24d05a687761900bb5dfad89
 ---

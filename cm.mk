@@ -21,6 +21,8 @@
 # lines, full and toro, hence its name.
 #
 
+CM_BUILDTYPE := NIGHTLY
+
 # Correct boot animation size for the screen
 TARGET_SCREEN_HEIGHT := 854
 TARGET_SCREEN_WIDTH := 480
