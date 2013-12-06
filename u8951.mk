@@ -56,8 +56,7 @@ PRODUCT_TAGS += dalvik.gc.type-precise
 PRODUCT_PACKAGES += \
     libstagefrighthw \
     libmm-omxcore \
-    libOmxCore \
-    LegacyCamera
+    libOmxCore
 
 # Graphics
 PRODUCT_PACKAGES += \
@@ -195,7 +194,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.kernel.android.checkjni=0 \
     ro.media.enc.jpeg.quality=100 \
-    persist.sys.use_dithering=0
+    persist.sys.use_dithering=0 \
+    dalvik.vm.debug.alloc=0
 
 # Huawei
 PRODUCT_PROPERTY_OVERRIDES += \

@@ -18,7 +18,7 @@ rootscripts :=
 
 etcscripts := \
         init.qcom.fm.sh \
-	init.qcom.thermald.sh
+	init.qcom.thermald_conf.sh
 
 PRODUCT_COPY_FILES += $(foreach file,$(rootscripts),\
         $(LOCAL_PATH)/$(file):root/$(file))
