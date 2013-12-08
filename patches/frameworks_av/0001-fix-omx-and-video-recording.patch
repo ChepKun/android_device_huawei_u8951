@@ -314,6 +314,26 @@ index 630f5af..9ff741f 100644
      struct CodecNameAndQuirks {
          String8 mName;
          uint32_t mQuirks;
+diff --git a/media/libmediaplayerservice/Android.mk b/media/libmediaplayerservice/Android.mk
+index 1683db2..f30fcb4 100644
+--- a/media/libmediaplayerservice/Android.mk
++++ b/media/libmediaplayerservice/Android.mk
+@@ -57,8 +57,13 @@ ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
+     LOCAL_C_INCLUDES += \
+             $(TOP)/hardware/qcom/media-caf/mm-core/inc
+     else
+-    LOCAL_C_INCLUDES += \
+-            $(TOP)/hardware/qcom/media/mm-core/inc
++    	ifeq ($(TARGET_QCOM_MEDIA_VARIANT),legacy)
++    	LOCAL_C_INCLUDES += \
++	    	$(TOP)/device/huawei/$(TARGET_DEVICE)/hardware/media-legacy/mm-core/inc
++    	else
++    	LOCAL_C_INCLUDES += \
++            	$(TOP)/hardware/qcom/media/mm-core/inc
++    	endif
+     endif
+ endif
+ 
 diff --git a/media/libmediaplayerservice/StagefrightRecorder.cpp b/media/libmediaplayerservice/StagefrightRecorder.cpp
 index 4d25277..c208e46 100644
 --- a/media/libmediaplayerservice/StagefrightRecorder.cpp
@@ -379,7 +399,7 @@ index a9e344d..b9cc7ad 100644
              for (OMX_U32 i = 0; i < def.nBufferCountActual; ++i) {
                  sp<IMemory> mem = mDealer[portIndex]->allocate(def.nBufferSize);
 diff --git a/media/libstagefright/Android.mk b/media/libstagefright/Android.mk
-index a859e4a..d02e1a7 100755
+index a859e4a..8861c21 100755
 --- a/media/libstagefright/Android.mk
 +++ b/media/libstagefright/Android.mk
 @@ -61,6 +61,12 @@ LOCAL_SRC_FILES:=                         \
@@ -407,7 +427,7 @@ index a859e4a..d02e1a7 100755
  
  ifneq ($(TI_CUSTOM_DOMX_PATH),)
  LOCAL_C_INCLUDES += $(TI_CUSTOM_DOMX_PATH)/omx_core/inc
-@@ -80,6 +83,14 @@ else
+@@ -80,6 +83,15 @@ else
  LOCAL_C_INCLUDES += $(TOP)/frameworks/native/include/media/openmax
  endif
  
@@ -415,14 +435,15 @@ index a859e4a..d02e1a7 100755
 +        $(TOP)/external/flac/include \
 +        $(TOP)/external/tremolo \
 +        $(TOP)/external/openssl/include \
-+        $(TOP)/hardware/qcom/media/mm-core/inc \
++        $(TOP)/device/huawei/$(TARGET_DEVICE)/hardware/media-legacy/mm-core/inc \
 +        $(TOP)/system/core/include \
-+        $(TOP)/hardware/qcom/$(DISPLAY)/libgralloc
++	$(TOP)/device/huawei/$(TARGET_DEVICE)/hardware/display-legacy/libgralloc
++							
 +
  ifeq ($(BOARD_USES_STE_FMRADIO),true)
  LOCAL_SRC_FILES += \
          FMRadioSource.cpp                 \
-@@ -120,7 +131,6 @@ LOCAL_SRC_FILES += TunnelPlayer.cpp
+@@ -120,7 +132,6 @@ LOCAL_SRC_FILES += TunnelPlayer.cpp
  endif
  endif
  
@@ -85306,10 +85327,10 @@ index 820734d..873f1fe 100644
  LOCAL_SRC_FILES := basic_op/basicop2.c basic_op/oper_32b.c
  
 diff --git a/media/libstagefright/colorconversion/Android.mk b/media/libstagefright/colorconversion/Android.mk
-index 59a64ba..af8ff57 100644
+index 59a64ba..b3b4352 100644
 --- a/media/libstagefright/colorconversion/Android.mk
 +++ b/media/libstagefright/colorconversion/Android.mk
-@@ -5,9 +5,17 @@ LOCAL_SRC_FILES:=                     \
+@@ -5,9 +5,18 @@ LOCAL_SRC_FILES:=                     \
          ColorConverter.cpp            \
          SoftwareRenderer.cpp
  
@@ -85324,7 +85345,8 @@ index 59a64ba..af8ff57 100644
          $(TOP)/frameworks/native/include/media/openmax \
 -        $(TOP)/hardware/msm7k
 +        $(TOP)/hardware/msm7k \
-+        $(TOP)/hardware/qcom/$(DISPLAY)/libgralloc
++	 $(TOP)/device/huawei/$(TARGET_DEVICE)/hardware/display-legacy/libgralloc
++					
  
  LOCAL_MODULE:= libstagefright_color_conversion
  

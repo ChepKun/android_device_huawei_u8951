@@ -204,7 +204,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.confg.hw_appversion=U8951_CM10.1_KERNEL
 
 # Dalvik params
-$(call inherit-product, frameworks/native/build/phone-hdpi-512-dalvik-heap.mk)
+$(call inherit-product-if-exists, frameworks/native/build/phone-hdpi-512-dalvik-heap.mk)
 	
 # Call product build config
 $(call inherit-product, build/target/product/full.mk)
