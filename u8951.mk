@@ -62,8 +62,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     copybit.msm7x27a \
     gralloc.msm7x27a \
-    hwcomposer.msm7x27a \
-    libtilerenderer
+    hwcomposer.msm7x27a
 
 # Audio
 PRODUCT_PACKAGES += \
@@ -78,11 +77,14 @@ PRODUCT_PACKAGES += \
     gps.msm7x27a \
     libloc_api-rpc
 
+# Lights	
+PRODUCT_PACKAGES += \
+    lights.msm7x27a
+
 # FM
 PRODUCT_PACKAGES += \
     libqcomfm_jni \
     qcom.fmradio
-#    FM2
 
 # Network
 PRODUCT_PACKAGES += \
@@ -119,13 +121,12 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.bluetooth.remote.autoconnect=true \
     ro.bluetooth.request.master=true \
-    ro.bt.bdaddr_path=/data/misc/bluedroid/bdaddr \
     ro.qualcomm.bluetooth.dun=true \
     ro.qualcomm.bluetooth.ftp=true
 
 # FM Radio
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.fm.analogpath.supported=true \
+    ro.fm.analogpath.supported=false \
     ro.fm.transmitter=false \
     ro.fm.mulinst.recording.support=false
 
@@ -144,7 +145,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 # Media
 PRODUCT_PROPERTY_OVERRIDES += \
-    debug.camcorder.disablemeta=0
+    debug.camcorder.disablemeta=0 \
+    ro.config.dualmic=true
 
 PRODUCT_PROPERTY_OVERRIDES += \
     media.stagefright.enable-player=true \
@@ -167,18 +169,20 @@ PRODUCT_PROPERTY_OVERRIDES += \
     dev.pm.dyn_sample_period=700000 \
     dev.pm.dyn_samplingrate=1 \
     ro.vendor.extension_library=/system/lib/libqc-opt.so \
-    persist.thermal.monitor=true
+    persist.thermal.monitor=true \
+    ro.hw_plat=7x27A
 
 # Telephony
 PRODUCT_PROPERTY_OVERRIDES += \
     rild.libpath=/system/lib/libril-qc-qmi-1.so \
     rild.libargs=-d[SPACE]/dev/smd0 \
     ro.telephony.call_ring.multiple=false \
-    ro.telephony.ril_class=HuaweiQualcommRIL \
+    ro.telephony.ril_class=HuaweiRIL \
     ro.telephony.ril.v3=qcomdsds,skippinpukcount \
     ril.subscription.types=NV,RUIM \
     gsm.version.baseband=2030 \
-    ro.telephony.call_ring.delay=0
+    ro.telephony.call_ring.delay=0 \
+    DEVICE_PROVISIONED=1
 
 # Storage
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -195,6 +199,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.kernel.android.checkjni=0 \
     ro.media.enc.jpeg.quality=100 \
     persist.sys.use_dithering=0 \
+    windowsmgr.max_events_per_sec=150 \
     dalvik.vm.debug.alloc=0
 
 # Huawei

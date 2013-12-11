@@ -69,6 +69,9 @@ on post-fs
     # Allow QMUX daemon to assign port open wait time
     chown radio radio /sys/devices/virtual/hsicctl/hsicctl0/modem_wait
 
+    # Enable Bluetooth 802.11 PAL when Bluetooth is turned on
+    setprop ro.config.bt.amp no
+
     # Port-bridge
     chmod 0660 /dev/smd0
     chown system system /dev/smd0
@@ -188,7 +191,7 @@ on post-fs
     write /sys/module/pm2/modes/cpu1/standalone_power_collapse/suspend_enabled 1
     write /sys/module/pm2/modes/cpu0/power_collapse/suspend_enabled 1
     write /sys/module/pm2/modes/cpu0/power_collapse/idle_enabled 1
-	
+
 # Msm specific files that need to be created on /data
 on post-fs-data
     mkdir /data/misc/bluetooth 0770 bluetooth bluetooth
@@ -273,9 +276,9 @@ service wpa_supplicant /system/bin/wpa_supplicant -Dnl80211 -ieth0 -e/data/misc/
     oneshot
 
 service dhcpcd_eth0 /system/bin/dhcpcd -BKLG
-     class main
-     disabled
-     oneshot
+    class main
+    disabled
+    oneshot
 
 service dhcpcd_p2p /system/bin/dhcpcd -BKLG
     class main
@@ -327,6 +330,11 @@ service iprenew_bt-pan /system/bin/dhcpcd -n
 	 
 service oem_rpc_svc /system/bin/oem_rpc_svc
     class main
+    oneshot
+
+service compassd /system/bin/compassd
+    class main
+    disabled
     oneshot
 
 service akm8963 /system/bin/akmd8963
