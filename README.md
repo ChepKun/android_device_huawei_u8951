@@ -1,7 +1,6 @@
 Device configuration for Huawei u8951 (G510)
 
-Thanks: CyanogenMod team 
-	Kratos, Dazzozo, Josalaito, Joestone, KonstaT
+Thanks: Kratos, Dazzozo, Josalaito, Joestone, KonstaT, CyanogenMod Team
 
 How to Build
 ---------------
