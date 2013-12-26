@@ -15,8 +15,6 @@
 #
 
 files := \
-	idc/qwerty.idc \
-	idc/qwerty2.idc \
 	keychars/7x27a_kp.kcm \
 	keylayout/7k_handset.kl \
 	keylayout/7x27a_kp.kl \

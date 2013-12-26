@@ -28,3 +28,5 @@
 dev_mount emmc /storage/sdcard0 19 /devices/platform/msm_sdcc.3/mmc_host/mmc0
 
 dev_mount sdcard /storage/sdcard1 auto /devices/platform/msm_sdcc.1/mmc_host
+
+dev_mount usbdisk0 /storage/usbdisk0 auto /devices/platform/msm_hsusb_host.0/usb1

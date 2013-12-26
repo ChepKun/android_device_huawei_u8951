@@ -1,0 +1,37 @@
+From: ChepKun <ProgrammerKun@gmail.com>
+Subject: [PATCH] media-caf: fix build
+
+diff --git a/Android.mk b/Android.mk
+index 3a1c84b..5abb03c 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -1,8 +1,12 @@
+-ifneq ($(filter msm8960 msm8660 msm7x30,$(TARGET_BOARD_PLATFORM)),)
+ ifeq ($(TARGET_QCOM_MEDIA_VARIANT),caf)
++QCOM_MEDIA_ROOT := $(call my-dir)
++ifneq ($(filter msm8974 msm8960 msm8660 msm7x27a msm7x27 msm7x30,$(TARGET_BOARD_PLATFORM)),)
++include $(QCOM_MEDIA_ROOT)/mm-core/Android.mk
++include $(QCOM_MEDIA_ROOT)/libstagefrighthw/Android.mk
++endif
+ 
+-include $(call all-subdir-makefiles)
+-
++ifneq ($(filter msm8974 msm8960 msm8660 msm7x30,$(TARGET_BOARD_PLATFORM)),)
++include $(QCOM_MEDIA_ROOT)/mm-video/Android.mk
++include $(QCOM_MEDIA_ROOT)/libc2dcolorconvert/Android.mk
+ endif
+ endif
+-
+diff --git a/mm-core/Android.mk b/mm-core/Android.mk
+index 3191e1f..2b102bd 100755
+--- a/mm-core/Android.mk
++++ b/mm-core/Android.mk
+@@ -10,7 +10,7 @@ OMXCORE_CFLAGS += -U_ENABLE_QC_MSG_LOG_
+ #             Figure out the targets
+ #===============================================================================
+ 
+-ifeq ($(TARGET_BOARD_PLATFORM),msm7627a)
++ifeq ($(TARGET_BOARD_PLATFORM),msm7x27a)
+ MM_CORE_TARGET = 7627A
+ else ifeq ($(TARGET_BOARD_PLATFORM),msm8660)
+ MM_CORE_TARGET = 8660

@@ -24,7 +24,8 @@ files := \
 	qosmgr_rules.xml \
 	thermald.conf \
 	thermald-8x25-msm1-pmic_therm.conf \
-	vold.fstab
+	vold.fstab \
+	nvram_4330.txt
 
 PRODUCT_COPY_FILES += $(foreach file,$(files),\
         $(LOCAL_PATH)/$(file):system/etc/$(file))

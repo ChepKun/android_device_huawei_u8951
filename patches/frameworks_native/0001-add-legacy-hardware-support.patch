@@ -1048,8 +1048,8 @@ index 0000000..fd60d8e
 +#ifdef MADV_REMOVE
 +        if (size) {
 +            int err = madvise(start_ptr, size, MADV_REMOVE);
-+            ALOGW_IF(err, "madvise(%p, %u, MADV_REMOVE) returned %s",
-+                    start_ptr, size, err<0 ? strerror(errno) : "Ok");
++            /* ALOGW_IF(err, "madvise(%p, %u, MADV_REMOVE) returned %s",
++                    start_ptr, size, err<0 ? strerror(errno) : "Ok"); */
 +        }
 +#endif
 +    }
@@ -1603,3 +1603,18 @@ index 050d10f..c01b437 100644
  
      // these are thread safe
      mutable MessageQueue mEventQueue;
+diff --git a/libs/binder/MemoryDealer.cpp b/libs/binder/MemoryDealer.cpp
+index 8d0e0a7..7e0a7b7 100644
+--- a/libs/binder/MemoryDealer.cpp
++++ b/libs/binder/MemoryDealer.cpp
+@@ -210,8 +210,8 @@ Allocation::~Allocation()
+ #ifdef MADV_REMOVE
+             if (size) {
+                 int err = madvise(start_ptr, size, MADV_REMOVE);
+-                ALOGW_IF(err, "madvise(%p, %u, MADV_REMOVE) returned %s",
+-                        start_ptr, size, err<0 ? strerror(errno) : "Ok");
++                /*ALOGW_IF(err, "madvise(%p, %u, MADV_REMOVE) returned %s",
++                        start_ptr, size, err<0 ? strerror(errno) : "Ok"); */
+             }
+ #endif
+         }

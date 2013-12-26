@@ -77,10 +77,6 @@ PRODUCT_PACKAGES += \
     gps.msm7x27a \
     libloc_api-rpc
 
-# Lights	
-PRODUCT_PACKAGES += \
-    lights.msm7x27a
-
 # FM
 PRODUCT_PACKAGES += \
     libqcomfm_jni \
@@ -88,8 +84,10 @@ PRODUCT_PACKAGES += \
 
 # Network
 PRODUCT_PACKAGES += \
-    hwmac
-	
+    hwmac \
+    libbt-vendor \
+    libnetcmdiface
+
 # Other
 PRODUCT_PACKAGES += \
     dexpreopt \
@@ -139,9 +137,11 @@ PRODUCT_PROPERTY_OVERRIDES += \
     debug.sf.hw=1 \
     debug.hwc.dynThreshold=1.9 \
     debug.composition.type=dyn \
+    debug.gr.numframebuffers=3 \
     ro.max.fling_velocity=4000 \
     ro.opengles.version=131072 \
-    ro.sf.lcd_density=240
+    ro.opengles.surface.rgb565=true \
+    ro.sf.lcd_density=240   
 
 # Media
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -182,6 +182,10 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ril.subscription.types=NV,RUIM \
     gsm.version.baseband=2030 \
     ro.telephony.call_ring.delay=0 \
+    ro.multi.rild=false \
+    ro.dual.sim.phone=false \
+    persist.dsds.enabled=false \
+    ro.use_data_netmgrd=true \
     DEVICE_PROVISIONED=1
 
 # Storage
@@ -194,13 +198,14 @@ PRODUCT_PROPERTY_OVERRIDES += \
     wifi.interface=eth0 \
     wifi.supplicant_scan_interval=60
 
+# Dalvik
+PRODUCT_PROPERTY_OVERRIDES += \
+    dalvik.vm.debug.alloc=0
+
 # Tweaks
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.kernel.android.checkjni=0 \
-    ro.media.enc.jpeg.quality=100 \
-    persist.sys.use_dithering=0 \
-    windowsmgr.max_events_per_sec=150 \
-    dalvik.vm.debug.alloc=0
+    persist.sys.prefer_16bpp=1
 
 # Huawei
 PRODUCT_PROPERTY_OVERRIDES += \
