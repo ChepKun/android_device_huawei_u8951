@@ -51,7 +51,7 @@ COMMON_GLOBAL_CFLAGS += -DQCOM_HARDWARE
 TARGET_GLOBAL_CFLAGS += -mtune=cortex-a5 -mfpu=neon -mfloat-abi=softfp
 TARGET_GLOBAL_CPPFLAGS += -mtune=cortex-a5 -mfpu=neon -mfloat-abi=softfp
 
-# Kernel 
+# Kernel
 TARGET_KERNEL_SOURCE := kernel/huawei/u8951
 TARGET_KERNEL_CONFIG := cm_msm8x25_defconfig
 TARGET_BOOTLOADER_BOARD_NAME := U8951
@@ -83,6 +83,8 @@ ARCH_ARM_HAVE_32_BYTE_CACHE_LINES := true
 
 # Dalvik
 TARGET_ARCH_LOWMEM := true
+WITH_JIT := true
+ENABLE_JSC_JIT := true
 
 # Graphics
 BOARD_EGL_CFG := device/huawei/u8951/configs/egl.cfg
@@ -118,11 +120,10 @@ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/huawei/u8951/configs/bdroi
 BOARD_BLUEDROID_VENDOR_CONF := device/huawei/u8951/configs/vnd_u8951.txt
 
 # FM Radio
-BOARD_HAVE_QCOM_FM := true
 BOARD_HAVE_FM_RADIO := true
-BOARD_FM_DEVICE := bcm4330
-COMMON_GLOBAL_CFLAGS += -DQCOM_FM_ENABLED
+BOARD_HAVE_QCOM_FM := true
 BOARD_GLOBAL_CFLAGS += -DHAVE_FM_RADIO
+COMMON_GLOBAL_CFLAGS += -DQCOM_FM_ENABLED
 
 # GPS
 BOARD_USES_QCOM_LIBRPC := true

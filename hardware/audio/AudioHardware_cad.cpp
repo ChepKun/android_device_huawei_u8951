@@ -20,7 +20,7 @@
 #include <math.h>
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "AudioHardwareMSM76XXA"
+#define LOG_TAG "AudioHardwareMSM7x27A"
 #include <utils/Log.h>
 #include <utils/String8.h>
 #include <stdio.h>
@@ -414,6 +414,18 @@ AudioStreamIn* AudioHardware::openInputStream(
     } else
 #endif /*QCOM_VOIP_ENABLED*/
     {
+        if ( (mMode == AudioSystem::MODE_IN_CALL) &&
+            (getInputSampleRate(*sampleRate) > AUDIO_HW_IN_SAMPLERATE) &&
+            (*format == AUDIO_HW_IN_FORMAT) )
+        {
+              ALOGE("PCM recording, in a voice call, with sample rate more than 8K not supported \
+                   re-configure with 8K and try software re-sampler ");
+              *status = UNKNOWN_ERROR ;
+              *sampleRate = AUDIO_HW_IN_SAMPLERATE;
+              mLock.unlock();
+              return 0;
+        }
+
         AudioStreamInMSM72xx* in = new AudioStreamInMSM72xx();
         status_t lStatus = in->set(this, devices, format, channels, sampleRate, acoustic_flags);
         if (status) {
@@ -976,9 +988,12 @@ status_t AudioHardware::setFmVolume(float v)
         v = 1.0;
     }
 
-    int vol = lrint(v * 7.5);
-    if (vol > 7)
-        vol = 7;
+    ALOGE("setFmVolume(%f)", v);
+
+    int vol = lrint(v * 20);
+
+    ALOGE("setFmVolume linear(%d)", vol);
+
     ALOGD("setFmVolume(%f)\n", v);
     Mutex::Autolock lock(mLock);
     set_volume_rpc(CAD_HW_DEVICE_ID_CURRENT_RX, CAD_HW_DEVICE_ID_CURRENT_TX, SND_METHOD_VOICE, vol, m7xsnddriverfd);

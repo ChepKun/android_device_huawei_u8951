@@ -80,13 +80,17 @@ PRODUCT_PACKAGES += \
 # FM
 PRODUCT_PACKAGES += \
     libqcomfm_jni \
-    qcom.fmradio
+    qcom.fmradio \
+    FMRadio \
+    FMRecord
 
 # Network
 PRODUCT_PACKAGES += \
     hwmac \
     libbt-vendor \
-    libnetcmdiface
+    libnetcmdiface \
+    iptables \
+    ip6tables
 
 # Other
 PRODUCT_PACKAGES += \
@@ -169,8 +173,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     dev.pm.dyn_sample_period=700000 \
     dev.pm.dyn_samplingrate=1 \
     ro.vendor.extension_library=/system/lib/libqc-opt.so \
-    persist.thermal.monitor=true \
-    ro.hw_plat=7x27A
+    persist.thermal.monitor=true
 
 # Telephony
 PRODUCT_PROPERTY_OVERRIDES += \
