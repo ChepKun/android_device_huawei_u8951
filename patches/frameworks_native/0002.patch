@@ -1,0 +1,17 @@
+From: ChepKun <ProgrammerKun@gmail.com>
+Subject: [PATCH] frameworks/native: fix build with linaro
+
+diff --git a/services/surfaceflinger/Android.mk b/services/surfaceflinger/Android.mk
+index 1def0fc..a2e5e37 100644
+--- a/services/surfaceflinger/Android.mk
++++ b/services/surfaceflinger/Android.mk
+@@ -43,6 +43,9 @@ ifneq ($(NUM_FRAMEBUFFER_SURFACE_BUFFERS),)
+   LOCAL_CFLAGS += -DNUM_FRAMEBUFFER_SURFACE_BUFFERS=$(NUM_FRAMEBUFFER_SURFACE_BUFFERS)
+ endif
+ 
++# HWComposer.cpp contains 2 pretty bad aliasing violations
++LOCAL_CFLAGS += -fno-strict-aliasing
++
+ ifeq ($(BOARD_ADRENO_DECIDE_TEXTURE_TARGET),true)
+     LOCAL_CFLAGS += -DDECIDE_TEXTURE_TARGET
+ endif

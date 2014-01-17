@@ -989,6 +989,8 @@ status_t AudioHardware::setFmVolume(float v)
     }
 
     int vol = lrint(v * 20);
+    if (vol > 0)
+	vol = vol + 1;
 
     ALOGD("setFmVolume(%f)\n", v);
     Mutex::Autolock lock(mLock);

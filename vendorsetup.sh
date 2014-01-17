@@ -20,5 +20,6 @@ if [[ "$PATCHES_HUAWEI_U8951" -eq 1 ]]
 then
   # apply Yamato patches
   export YAMATO_PATCH_SOURCE=1
+#  export YAMATO_USES_LINARO=1
   sh device/huawei/u8951/patches/apply.sh
 fi

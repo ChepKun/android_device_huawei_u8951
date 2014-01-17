@@ -88,9 +88,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     hwmac \
     libbt-vendor \
-    libnetcmdiface \
-    iptables \
-    ip6tables
+    libnetcmdiface
 
 # Other
 PRODUCT_PACKAGES += \
