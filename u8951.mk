@@ -21,9 +21,6 @@
 # lines, full and toro, hence its name.
 #
 
-# Languages
-PRODUCT_LOCALES := ru_RU en_US
-
 # Screen scale
 PRODUCT_AAPT_CONFIG := normal hdpi
 PRODUCT_AAPT_PREF_CONFIG := hdpi
@@ -81,8 +78,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     libqcomfm_jni \
     qcom.fmradio \
-    FMRadio \
-    FMRecord
+    FMRadio
 
 # Network
 PRODUCT_PACKAGES += \
@@ -139,11 +135,11 @@ PRODUCT_PROPERTY_OVERRIDES += \
     debug.sf.hw=1 \
     debug.hwc.dynThreshold=1.9 \
     debug.composition.type=dyn \
-    debug.gr.numframebuffers=3 \
     ro.max.fling_velocity=4000 \
     ro.opengles.version=131072 \
     ro.opengles.surface.rgb565=true \
-    ro.sf.lcd_density=240   
+    ro.sf.lcd_density=240
+
 
 # Media
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -157,7 +153,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     media.stagefright.enable-http=true \
     media.stagefright.enable-fma2dp=true \
     media.stagefright.enable-aac=true \
-    media.stagefright.enable-qcp=true \
+    media.stagefright.enable-qcp=true
 
 # Memory
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -175,11 +171,11 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 # Telephony
 PRODUCT_PROPERTY_OVERRIDES += \
-    rild.libpath=/system/lib/libril-qc-qmi-1.so \
+    rild.libpath=/system/lib/libril-qc-1.so \
     rild.libargs=-d[SPACE]/dev/smd0 \
     ro.telephony.call_ring.multiple=false \
     ro.telephony.ril_class=HuaweiRIL \
-    ro.telephony.ril.v3=qcomdsds,skippinpukcount \
+    ro.telephony.ril.v3=qcomdsds,skippinpukcount,signalstrength \
     ril.subscription.types=NV,RUIM \
     gsm.version.baseband=2030 \
     ro.telephony.call_ring.delay=0 \
@@ -187,7 +183,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.dual.sim.phone=false \
     persist.dsds.enabled=false \
     ro.use_data_netmgrd=true \
-    DEVICE_PROVISIONED=1
+    DEVICE_PROVISIONED=1 \
+    ro.ril.disable.power.collapse=0
 
 # Storage
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -206,7 +203,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # Tweaks
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.kernel.android.checkjni=0 \
-    persist.sys.prefer_16bpp=1
+    pm.sleep_mode=1
 
 # Huawei
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -216,9 +213,12 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 # Dalvik params
 $(call inherit-product-if-exists, frameworks/native/build/phone-hdpi-512-dalvik-heap.mk)
-	
+
 # Call product build config
 $(call inherit-product, build/target/product/full.mk)
+
+# Languages
+PRODUCT_LOCALES := ru_RU en_US
 
 # Vendor blobs
 $(call inherit-product, vendor/huawei/u8951/vendor-blobs.mk)

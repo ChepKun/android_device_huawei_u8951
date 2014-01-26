@@ -27,6 +27,9 @@ CM_BUILDTYPE := NIGHTLY
 TARGET_SCREEN_HEIGHT := 854
 TARGET_SCREEN_WIDTH := 480
 
+# Enable selinux
+HAVE_SELINUX := true
+
 # Specify phone tech before including full_phone
 $(call inherit-product, vendor/yamato/config/gsm.mk)
 

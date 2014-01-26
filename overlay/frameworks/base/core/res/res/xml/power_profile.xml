@@ -18,6 +18,7 @@
 <value>2.15</value>
 </array>
 <array name="cpu.speeds">
+<value>61440</value>
 <value>122880</value>
 <value>245760</value>
 <value>320000</value>
@@ -29,6 +30,7 @@
 <item name="cpu.idle">3.5</item>
 <item name="cpu.awake">10.43</item>
 <array name="cpu.active">
+<value>42.4</value>
 <value>50.0</value>
 <value>65.8</value>
 <value>85.4</value>

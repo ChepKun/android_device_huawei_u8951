@@ -224,5 +224,12 @@
     <integer name="config_deviceHardwareKeys">7</integer> 
 
     <!--  Maximum number of supported users -->
-    <integer name="config_multiuserMaximumUsers">5</integer>
+    <integer name="config_multiuserMaximumUsers">3</integer>
+
+    <!-- The default reduced-datarate value in kilobits per sec -->
+    <integer name="config_datause_throttle_kbitsps">400</integer>
+
+    <!-- If true, the screen can be rotated via the accelerometer in all 4
+         rotations as the default behavior. -->
+    <bool name="config_allowAllRotations">true</bool>
 </resources>

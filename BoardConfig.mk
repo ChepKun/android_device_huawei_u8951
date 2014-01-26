@@ -52,8 +52,8 @@ TARGET_GLOBAL_CFLAGS += -mtune=cortex-a5 -mfpu=neon -mfloat-abi=softfp
 TARGET_GLOBAL_CPPFLAGS += -mtune=cortex-a5 -mfpu=neon -mfloat-abi=softfp
 
 # Kernel
-TARGET_KERNEL_SOURCE := kernel/huawei/u8951
-TARGET_KERNEL_CONFIG := cm_msm8x25_defconfig
+TARGET_KERNEL_SOURCE := kernel/huawei/msm8x25
+TARGET_KERNEL_CONFIG := msm8x25_defconfig
 TARGET_BOOTLOADER_BOARD_NAME := U8951
 TARGET_USERIMAGES_USE_EXT4 := true
 BOARD_KERNEL_CMDLINE := androidboot.hardware=huawei
@@ -89,11 +89,8 @@ ENABLE_JSC_JIT := true
 # Graphics
 BOARD_EGL_CFG := device/huawei/u8951/configs/egl.cfg
 BOARD_ADRENO_DECIDE_TEXTURE_TARGET := true
-BOARD_EGL_NEEDS_LEGACY_FB := true
 USE_OPENGL_RENDERER := true
 TARGET_QCOM_DISPLAY_VARIANT := legacy
-NUM_FRAMEBUFFER_SURFACE_BUFFERS := 3
-COMMON_GLOBAL_CFLAGS += -DREFRESH_RATE=65
 
 # Video
 TARGET_USES_QCOM_BSP := true

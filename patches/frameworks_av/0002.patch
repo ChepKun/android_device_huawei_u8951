@@ -1,0 +1,69 @@
+From: ChepKun <ProgrammerKun@gmail.com>
+Subject: [PATCH] frameworks/av: fix build with linaro
+
+diff --git a/media/libeffects/downmix/Android.mk b/media/libeffects/downmix/Android.mk
+index 95ca6fd..c6b5ade 100644
+--- a/media/libeffects/downmix/Android.mk
++++ b/media/libeffects/downmix/Android.mk
+@@ -15,6 +15,8 @@ LOCAL_MODULE_TAGS := optional
+ 
+ LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/soundfx
+ 
++LOCAL_CFLAGS += -fno-strict-aliasing
++
+ ifeq ($(TARGET_OS)-$(TARGET_SIMULATOR),linux-true)
+ LOCAL_LDLIBS += -ldl
+ endif
+diff --git a/media/libeffects/visualizer/Android.mk b/media/libeffects/visualizer/Android.mk
+index 76b5110..20bd533 100644
+--- a/media/libeffects/visualizer/Android.mk
++++ b/media/libeffects/visualizer/Android.mk
+@@ -6,7 +6,8 @@ include $(CLEAR_VARS)
+ LOCAL_SRC_FILES:= \
+ 	EffectVisualizer.cpp
+ 
+-LOCAL_CFLAGS+= -O2
++LOCAL_CFLAGS += -O2
++LOCAL_CFLAGS += -fno-strict-aliasing
+ 
+ LOCAL_SHARED_LIBRARIES := \
+ 	libcutils \
+diff --git a/media/libmedia/Android.mk b/media/libmedia/Android.mk
+index 6c37487..dad2743 100644
+--- a/media/libmedia/Android.mk
++++ b/media/libmedia/Android.mk
+@@ -81,6 +81,8 @@ LOCAL_CFLAGS += -DQCOM_ENHANCED_AUDIO
+ endif
+ endif
+ 
++LOCAL_CFLAGS += -fno-strict-aliasing
++
+ LOCAL_SHARED_LIBRARIES := \
+ 	libui libcutils libutils libbinder libsonivox libicuuc libexpat \
+         libcamera_client libstagefright_foundation \
+diff --git a/media/libmediaplayerservice/Android.mk b/media/libmediaplayerservice/Android.mk
+index 1683db2..65852ed 100644
+--- a/media/libmediaplayerservice/Android.mk
++++ b/media/libmediaplayerservice/Android.mk
+@@ -64,6 +64,8 @@ endif
+ 
+ LOCAL_MODULE:= libmediaplayerservice
+ 
++LOCAL_CFLAGS += -fno-strict-aliasing
++
+ include $(BUILD_SHARED_LIBRARY)
+ 
+ include $(call all-makefiles-under,$(LOCAL_PATH))
+diff --git a/services/audioflinger/Android.mk b/services/audioflinger/Android.mk
+index e48cabd..c191afa 100644
+--- a/services/audioflinger/Android.mk
++++ b/services/audioflinger/Android.mk
+@@ -21,6 +21,8 @@ ifeq ($(BOARD_HAVE_BLUETOOTH_BLUEZ),true)
+ LOCAL_CFLAGS += -DHAVE_BLUETOOTH_BLUEZ
+ endif
+ 
++LOCAL_CFLAGS += -fno-strict-aliasing
++
+ LOCAL_SRC_FILES:=               \
+     AudioFlinger.cpp            \
+     AudioMixer.cpp.arm          \

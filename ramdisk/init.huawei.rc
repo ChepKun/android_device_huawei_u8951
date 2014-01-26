@@ -92,6 +92,7 @@ on post-fs
     # For bridgemgr daemon to inform the USB driver of the correct transport
     chown radio radio /sys/class/android_usb/f_rmnet_smd_sdio/transport
 
+    # Init thermald
     exec /system/bin/sh /system/etc/init.qcom.thermald_conf.sh
 
     # To allow interfaces to get v6 address when tethering is enabled
@@ -339,27 +340,36 @@ service qcamerasvr /system/bin/mm-qcamera-daemon
    group system camera inet audio
 
 service mpdecision /system/bin/mpdecision --Nw 5.4 --Ts 350 --no_sleep --avg_comp --single_core_while_panel_off
-    class late_start 
-    user root
-    disabled
+   class late_start 
+   user root
+   disabled
 
 service thermald /system/bin/thermald
-    class late_start
-    user root
-    group root
-    disabled
+   class late_start
+   user root
+   group root
+   disabled
 
 on property:persist.thermal.monitor=true
-    start thermald
+   start thermald
 
 service gpu_dcvsd /system/bin/gpu_dcvsd
-    class late_start
-    user root
-    oneshot
+   class late_start
+   user root
+   oneshot
 
 service fm_dl /system/bin/sh /system/etc/init.qcom.fm.sh
-    class late_start
-    user root
-    group system qcom_oncrpc
-    disabled
-    oneshot
+   class late_start
+   user root
+   group system qcom_oncrpc
+   disabled
+   oneshot
+
+service post_boot /system/bin/sh /init.params.sh
+   class late_start
+   user root
+   disabled
+   oneshot
+
+on property:init.svc.bootanim=stopped
+   start post_boot

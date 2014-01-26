@@ -19,6 +19,7 @@ files := \
 	init.huawei.usb.rc \
 	fstab.huawei \
 	ueventd.huawei.rc \
+	init.params.sh \
 	tp/1191601.img
 
 PRODUCT_COPY_FILES += $(foreach file,$(files),\
