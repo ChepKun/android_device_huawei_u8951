@@ -1,3 +1,5 @@
+# Copyright 2014 The Android Open Source Project
+
 # mount point	    fstype		device				[device2]   			flags
 
 /misc		    emmc		/dev/block/mmcblk0p7

@@ -1,4 +1,4 @@
-Device configuration for Huawei u8951 (1 sim only, no NFC)
+Device configuration for Huawei u8951 (with 1 sim only, no NFC)
 
 Credits: Kratos, Dazzozo, Josalaito, Joestone, KonstaT, CyanogenMod Team, TeamWin
 

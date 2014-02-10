@@ -32,11 +32,6 @@ $(call inherit-product, device/huawei/u8951/ramdisk/ramdisk.mk)
 # Overlays
 DEVICE_PACKAGE_OVERLAYS += device/huawei/u8951/overlay
 
-# FM
-PRODUCT_PACKAGES += \
-    libqcomfm_jni \
-    qcom.fmradio
-
 # Specific
 PRODUCT_PACKAGES += \
     Torch
@@ -57,9 +52,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.telephony.ril_class=HuaweiRIL \
     ro.telephony.default_network=0 \
     persist.multisim.config=none \
-    ro.multi.rild=false
-    #ro.dual.sim.phone=false \
-    #persist.dsds.enabled=false
+    ro.multi.rild=false \
+    ro.dual.sim.phone=false \
+    persist.dsds.enabled=false
 
 # Call product build config
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full.mk)

@@ -15,9 +15,8 @@
 #
 
 froot := \
-	init.device.rc \
+	init.target.rc \
 	fstab.huawei \
-        init.qcom.fm.sh \
 	tp/1191601.img
 
 PRODUCT_COPY_FILES += $(foreach file,$(froot),\

@@ -36,7 +36,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # Debug
 ADDITIONAL_DEFAULT_PROPERTIES += \
     ro.secure=0 \
-    ro.adb.secure=0
+    ro.adb.secure=0 \
+    ro.allow.mock.location=1
 
 # Set build fingerprint / ID / Product Name ect.
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
