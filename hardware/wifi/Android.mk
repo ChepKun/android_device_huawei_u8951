@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2014 The Android Open-Source Project
+# Copyright 2014 The Android Open Source Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,17 +14,6 @@
 # limitations under the License.
 #
 
-froot := \
-	init.target.rc \
-	fstab.huawei \
-	init.huawei.qmi.sh \
-	tp/1191601.img
+LOCAL_PATH:= $(call my-dir)
 
-PRODUCT_COPY_FILES += $(foreach file,$(froot),\
-        $(LOCAL_PATH)/$(file):root/$(file))
-
-frecovery := \
-	tp/1191601.img
-
-PRODUCT_COPY_FILES += $(foreach file,$(frecovery),\
-        $(LOCAL_PATH)/$(file):/recovery/root/$(file))
+include $(call all-makefiles-under,$(LOCAL_PATH))

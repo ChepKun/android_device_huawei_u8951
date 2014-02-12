@@ -14,8 +14,11 @@
 # limitations under the License.
 #
 
-# in terminal: export PATCHES_HUAWEI_U8951=1 to apply
-if [[ "$PATCHES_HUAWEI_U8951" -eq 1 ]]
+# Interactive :)
+PATCHES_HUAWEI_U8951="n"
+echo -n "Apply patches for Huawei u8951? (y/n): " && read PATCHES_HUAWEI_U8951
+
+if [[ "$PATCHES_HUAWEI_U8951" == "y" ]]
 then
   export THETA_PATCH_SOURCE=1
   export PATCHES_HUAWEI_U8951=0

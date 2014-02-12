@@ -88,3 +88,12 @@ service gpu_dcvsd /system/bin/gpu_dcvsd
     class late_start
     user root
     oneshot
+
+service ril-qmi /system/bin/sh /init.huawei.qmi.sh
+    class main
+    user root
+    disabled
+    oneshot
+
+on property:init.svc.bootanim=stopped
+    start ril-qmi
