@@ -25,7 +25,7 @@ then
   echo ""
   echo "***************** HUAWEI U8951 *****************"
   echo ""
-  sh device/huawei/msm7x27a-common/patches/apply.sh
+  sh device/huawei/msm7x27a/patches/apply.sh
   sh device/huawei/u8951/patches/apply.sh
   echo ""
   echo "***************** HUAWEI U8951 *****************"

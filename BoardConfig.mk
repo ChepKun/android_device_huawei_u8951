@@ -14,11 +14,11 @@
 # limitations under the License.
 #
 
-# Inherit from the common msm7x27a definitions
-include device/huawei/msm7x27a-common/BoardConfig.mk
-
 # OTA
 TARGET_OTA_ASSERT_DEVICE := u8951,G510
+
+# Inherit from the common msm7x27a definitions
+include device/huawei/msm7x27a/BoardConfig.mk
 
 # Architecture and CPU
 TARGET_CPU_SMP := true

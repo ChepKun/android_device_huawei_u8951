@@ -15,7 +15,8 @@
 #
 
 froot := \
-	init.target.rc \
+	init.huawei.device.rc \
+	init.huawei.dsds.rc \
 	fstab.huawei \
 	init.huawei.qmi.sh \
 	tp/1191601.img

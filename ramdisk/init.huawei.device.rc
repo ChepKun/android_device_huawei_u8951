@@ -29,6 +29,8 @@
 on early-init
     write /sys/module/msm_fb/parameters/align_buffer 1
 
+# Services
+
 service rmt_storage /system/bin/rmt_storage /dev/block/mmcblk0p9 /dev/block/mmcblk0p10 /dev/block/mmcblk0p14
     class core
 
@@ -89,11 +91,14 @@ service gpu_dcvsd /system/bin/gpu_dcvsd
     user root
     oneshot
 
+# Restart rild service
 service ril-qmi /system/bin/sh /init.huawei.qmi.sh
     class main
     user root
     disabled
     oneshot
+
+# Events
 
 on property:init.svc.bootanim=stopped
     start ril-qmi

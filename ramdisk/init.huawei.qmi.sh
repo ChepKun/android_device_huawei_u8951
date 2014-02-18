@@ -27,9 +27,15 @@
 #
 
 # Restart rild 
-    dsds=`getprop persist.multisim.config`
     stop ril-daemon
+    dsds=`getprop persist.multisim.config`
     setprop rild.libpath "/system/lib/libril-qc-qmi-1.so"
+
+    PATH=/system/bin:$PATH
+    export PATH
+    cat /sys/devices/platform/rs300000a7.65536/force_sync
+    cat /sys/devices/platform/rs300100a7.65536/force_sync
+
     if [ "$dsds" = "dsds" ]; then
         setprop ro.multi.rild true
         start ril-daemon
@@ -37,5 +43,3 @@
     else
         start ril-daemon
     fi
-
-exit 0

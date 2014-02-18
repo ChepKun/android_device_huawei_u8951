@@ -15,7 +15,7 @@
 #
 
 # Inherit the msm7x27a-common definitions
-$(call inherit-product, device/huawei/msm7x27a-common/msm7x27a.mk)
+$(call inherit-product, device/huawei/msm7x27a/msm7x27a.mk)
 
 # Include vendor blobs
 $(call inherit-product-if-exists, vendor/huawei/u8951/vendor-blobs.mk)
@@ -50,11 +50,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
     gsm.version.baseband=2030 \
     ro.telephony.ril.v3=qcomdsds,skippinpukcount,signalstrength \
     ro.telephony.ril_class=HuaweiRIL \
-    ro.telephony.default_network=0 \
     persist.multisim.config=none \
-    ro.multi.rild=false \
-    ro.dual.sim.phone=false \
-    persist.dsds.enabled=false
+    ro.config.dualmic=true
 
 # Call product build config
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full.mk)
