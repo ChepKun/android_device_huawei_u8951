@@ -45,10 +45,11 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.telephony.gsm.xml:system/etc/permissions/android.hardware.telephony.gsm.xml \
     frameworks/native/data/etc/android.hardware.touchscreen.multitouch.jazzhand.xml:system/etc/permissions/android.hardware.touchscreen.multitouch.jazzhand.xml
 
+#signalstrength
 # Telephony
 PRODUCT_PROPERTY_OVERRIDES += \
     gsm.version.baseband=2030 \
-    ro.telephony.ril.v3=qcomdsds,skippinpukcount,signalstrength \
+    ro.telephony.ril.v3=qcomdsds,skippinpukcount \
     ro.telephony.ril_class=HuaweiRIL \
     persist.multisim.config=none \
     ro.config.dualmic=true
