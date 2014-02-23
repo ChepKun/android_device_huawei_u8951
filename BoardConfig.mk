@@ -24,7 +24,7 @@ include device/huawei/msm7x27a/BoardConfig.mk
 TARGET_CPU_SMP := true
 
 # Kernel
-TARGET_KERNEL_CONFIG := u8951_defconfig
+TARGET_KERNEL_CONFIG := msm8x25_defconfig
 TARGET_BOOTLOADER_BOARD_NAME := U8951
 
 KERNEL_EXTERNAL_MODULES:

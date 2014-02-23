@@ -52,7 +52,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.telephony.ril.v3=qcomdsds,skippinpukcount \
     ro.telephony.ril_class=HuaweiRIL \
     persist.multisim.config=none \
-    ro.config.dualmic=true
+    ro.config.dualmic=true \
+    persist.dsds.enabled=false \
+    ro.dual.sim.phone=false
 
 # Call product build config
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full.mk)
