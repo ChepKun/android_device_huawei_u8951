@@ -22,6 +22,6 @@
     <bool name="has_in_call_noise_suppression">true</bool>
 
     <!-- Audio parameter for setting noise suppression-->
-    <string name="in_call_noise_suppression_audioparameter">noise_suppression=on=off</string>
+    <string name="in_call_noise_suppression_audioparameter">dualmic_enabled=true=false</string>
 
 </resources>

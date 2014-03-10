@@ -729,3 +729,27 @@ void gr_write_frame_to_file(int fd)
 {
     write(fd, gr_mem_surface.data, vi.xres * vi.yres * vi.bits_per_pixel / 8);
 }
+
+int gr_maxExW(const char *s, void* font, int max_width)	
+{	
+    GRFont* fnt = (GRFont*) font;	
+    int total = 0;	
+    unsigned pos;	
+    unsigned off;	
+
+    if (!fnt) fnt = gr_font;
+
+    while ((off = *s++))
+    {	
+        off -= 32;	
+        if (off < 96) {	
+            max_width -= (fnt->offset[off+1] - fnt->offset[off]);
+                        if (max_width > 0) {
+                                total++;
+                        } else {
+                               return total;
+                        }
+                }
+    }
+    return total;
+}
